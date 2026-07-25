@@ -19,6 +19,11 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'UP', message: 'API is running' });
 });
 
+// 404 Not Found Middleware
+app.use((req, res) => {
+  res.status(404).json({ success: false, error: 'Route not found' });
+});
+
 // Global Exception Handler
 app.use(errorHandler);
 

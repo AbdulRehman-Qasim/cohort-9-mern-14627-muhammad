@@ -4,8 +4,17 @@ const logger = require('../utils/logger');
 const errorHandler = (err, req, res, next) => {
   logger.error(err);
 
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+  let statusCode = parseInt(err.statusCode, 10);
+  if (Number.isNaN(statusCode) || statusCode < 100 || statusCode > 599) {
+    statusCode = 500;
+  }
+
+  let message = err.message || 'Internal Server Error';
+
+  // In production, never expose internal server error messages
+  if (process.env.NODE_ENV === 'production' && statusCode >= 500) {
+    message = 'Internal Server Error';
+  }
 
   res.status(statusCode).json({
     success: false,
