@@ -23,8 +23,18 @@ const gracefulShutdown = (signal, exitCode = 0) => {
     process.exit(1);
   }, 10000).unref();
 
-  server.close(() => {
+  server.close(async () => {
     logger.info('HTTP server closed');
+
+    // Disconnect Prisma gracefully
+    try {
+      const prisma = require('./src/config/prisma');
+      await prisma.$disconnect();
+      logger.info('Prisma database connection closed');
+    } catch (dbErr) {
+      logger.error(`Error closing Prisma database connection: ${dbErr.message}`);
+    }
+
     process.exit(exitCode);
   });
 };
