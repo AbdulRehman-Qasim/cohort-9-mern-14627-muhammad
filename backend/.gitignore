@@ -4,3 +4,11 @@ node_modules/
 !.env.example
 coverage/
 .DS_Store
+
+/src/generated/prisma
+
+# AI and Editor configurations
+.agents/
+.claude/
+.windsurf/
+skills-lock.json
