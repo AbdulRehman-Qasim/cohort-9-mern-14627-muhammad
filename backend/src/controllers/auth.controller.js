@@ -29,11 +29,16 @@ const login = async (req, res, next) => {
   }
 };
 
-const getCurrentUser = (req, res) => {
-  res.status(200).json({
-    success: true,
-    data: req.user,
-  });
+const getCurrentUser = async (req, res, next) => {
+  try {
+    const user = await authService.getCurrentUser(req.user.id);
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {

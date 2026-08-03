@@ -15,22 +15,31 @@ const registerUser = async (name, email, password) => {
 
   const hashedPassword = await hashPassword(password);
 
-  const newUser = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  try {
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
-  return newUser;
+    return newUser;
+  } catch (error) {
+    if (error.code === 'P2002') {
+      const duplicateError = new Error('User with this email already exists');
+      duplicateError.statusCode = 400;
+      throw duplicateError;
+    }
+    throw error;
+  }
 };
 
 const loginUser = async (email, password) => {
@@ -65,7 +74,29 @@ const loginUser = async (email, password) => {
   return { token, user: safeUser };
 };
 
+const getCurrentUser = async (id) => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return user;
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  getCurrentUser,
 };
