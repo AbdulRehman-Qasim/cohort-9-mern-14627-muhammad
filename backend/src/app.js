@@ -5,6 +5,9 @@ const pinoHttp = require('pino-http');
 const logger = require('./utils/logger');
 const errorHandler = require('./middlewares/errorHandler');
 
+const authRoutes = require('./routes/auth.routes');
+const notesRoutes = require('./routes/notes.routes');
+
 const app = express();
 
 // Middleware
@@ -20,8 +23,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // Routes
-const authRoutes = require('./routes/auth.routes');
 app.use('/api/auth', authRoutes);
+app.use('/api/notes', notesRoutes);
 
 // 404 Not Found Middleware
 app.use((req, res) => {
