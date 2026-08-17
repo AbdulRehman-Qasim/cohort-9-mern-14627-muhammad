@@ -1,7 +1,7 @@
-import { useContext } from 'react';
+import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 
-const DashboardPage = () => {
+const DashboardPage: React.FC = () => {
   const { user } = useContext(AuthContext);
 
   return (

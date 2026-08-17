@@ -1,44 +1,52 @@
-import { useState, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { ApiError } from '../types/auth.types';
 
-const RegisterPage = () => {
+interface RegisterFormErrors {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+}
+
+const RegisterPage: React.FC = () => {
   const { register } = useContext(AuthContext);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
-  
-  const [errors, setErrors] = useState({});
+
+  const [errors, setErrors] = useState<RegisterFormErrors>({});
   const [apiError, setApiError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
-  const validate = () => {
-    const newErrors = {};
+  const validate = (): boolean => {
+    const newErrors: RegisterFormErrors = {};
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
-    
+
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please provide a valid email format';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters long';
     }
-    
+
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Confirm Password is required';
     } else if (formData.password !== formData.confirmPassword) {
@@ -49,20 +57,25 @@ const RegisterPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setApiError('');
-    
+
     if (!validate()) return;
-    
+
     setIsSubmitting(true);
     try {
       await register(formData.name, formData.email, formData.password);
       setIsSuccess(true);
       setFormData({ name: '', email: '', password: '', confirmPassword: '' });
     } catch (error) {
-      const message = error.response?.data?.message || error.response?.data?.errors?.[0]?.msg || 'Registration failed. Please try again.';
-      setApiError(message);
+      if (error instanceof ApiError) {
+        setApiError(error.message);
+      } else if (error instanceof Error) {
+        setApiError(error.message);
+      } else {
+        setApiError('Registration failed. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -73,7 +86,9 @@ const RegisterPage = () => {
       <div className="auth-container success-container">
         <h2>Registration Successful!</h2>
         <p>Your account has been created successfully.</p>
-        <Link to="/login" className="submit-btn text-center" style={{display: 'inline-block', marginTop: '1rem', textDecoration: 'none'}}>Go to Login</Link>
+        <Link to="/login" className="submit-btn text-center" style={{ display: 'inline-block', marginTop: '1rem', textDecoration: 'none' }}>
+          Go to Login
+        </Link>
       </div>
     );
   }
@@ -110,7 +125,7 @@ const RegisterPage = () => {
           />
           {errors.email && <span className="field-error" role="alert">{errors.email}</span>}
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="password">Password</label>
           <input
@@ -138,7 +153,7 @@ const RegisterPage = () => {
           />
           {errors.confirmPassword && <span className="field-error" role="alert">{errors.confirmPassword}</span>}
         </div>
-        
+
         <button type="submit" disabled={isSubmitting} className="submit-btn">
           {isSubmitting ? 'Registering...' : 'Register'}
         </button>

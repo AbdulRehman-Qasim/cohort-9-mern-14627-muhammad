@@ -1,3 +1,4 @@
+import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
@@ -8,13 +9,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 import './App.css';
 
-function App() {
+const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<MainLayout />}>
         {/* Public Routes */}
         <Route index element={<HomePage />} />
-        
+
         {/* Auth Routes (Redirect to dashboard if logged in) */}
         <Route element={<PublicRoute />}>
           <Route path="login" element={<LoginPage />} />
@@ -28,6 +29,6 @@ function App() {
       </Route>
     </Routes>
   );
-}
+};
 
 export default App;

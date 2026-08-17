@@ -1,23 +1,29 @@
-import { useState, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { ApiError } from '../types/auth.types';
 
-const LoginPage = () => {
+interface FormErrors {
+  email?: string;
+  password?: string;
+}
+
+const LoginPage: React.FC = () => {
   const { login } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [apiError, setApiError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validate = () => {
-    const newErrors = {};
+  const validate = (): boolean => {
+    const newErrors: FormErrors = {};
     if (!email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = 'Please provide a valid email format';
     }
-    
+
     if (!password) {
       newErrors.password = 'Password is required';
     }
@@ -26,20 +32,23 @@ const LoginPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setApiError('');
-    
+
     if (!validate()) return;
-    
+
     setIsSubmitting(true);
     try {
       await login(email, password);
-      // Success is handled by context state update. Navigation happens later.
     } catch (error) {
-      // Backend error extraction
-      const message = error.response?.data?.message || error.response?.data?.errors?.[0]?.msg || 'Login failed. Please check your credentials.';
-      setApiError(message);
+      if (error instanceof ApiError) {
+        setApiError(error.message);
+      } else if (error instanceof Error) {
+        setApiError(error.message);
+      } else {
+        setApiError('Login failed. Please check your credentials.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -56,28 +65,28 @@ const LoginPage = () => {
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             placeholder="Enter your email"
             disabled={isSubmitting}
             aria-invalid={!!errors.email}
           />
           {errors.email && <span className="field-error" role="alert">{errors.email}</span>}
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="password">Password</label>
           <input
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             placeholder="Enter your password"
             disabled={isSubmitting}
             aria-invalid={!!errors.password}
           />
           {errors.password && <span className="field-error" role="alert">{errors.password}</span>}
         </div>
-        
+
         <button type="submit" disabled={isSubmitting} className="submit-btn">
           {isSubmitting ? 'Logging in...' : 'Login'}
         </button>
