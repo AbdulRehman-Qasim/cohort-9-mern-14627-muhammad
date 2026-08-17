@@ -29,7 +29,6 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [sessionVersion, setSessionVersion] = useState<number>(0);
 
   useEffect(() => {
     let isActive = true;
@@ -64,7 +63,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       isActive = false;
     };
-  }, [sessionVersion]);
+  }, []);
 
   useEffect(() => {
     const handleUnauthorized = () => {
@@ -79,28 +78,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string, password: string): Promise<ApiResponse<User>> => {
-    const response = await authService.login(email, password);
-    if (response.success && response.data) {
-      const newSessionId = `session_${Date.now()}`;
-      setSessionId(newSessionId);
-      setUser(response.data);
+    try {
+      const response = await authService.login(email, password);
+      if (response.success && response.data) {
+        const newSessionId = `session_${Date.now()}`;
+        setSessionId(newSessionId);
+        setUser(response.data);
+      }
+      return response;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      return { success: false, error: errorMessage };
     }
-    return response;
   };
 
   const register = async (name: string, email: string, password: string): Promise<ApiResponse<User>> => {
-    return await authService.register(name, email, password);
+    try {
+      return await authService.register(name, email, password);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      return { success: false, error: errorMessage };
+    }
   };
 
   const logout = async (): Promise<void> => {
-    // Invalidate active session effect
-    setSessionVersion((prev) => prev + 1);
-    setSessionId(null);
-    setUser(null);
     try {
       await authService.logout();
     } catch {
       // Ignore logout API failures if session is already invalid
+    } finally {
+      setSessionId(null);
+      setUser(null);
     }
   };
 

@@ -40,7 +40,10 @@ const LoginPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      const response = await login(email, password);
+      if (!response.success) {
+        setApiError(response.error || 'Login failed. Please check your credentials.');
+      }
     } catch (error) {
       if (error instanceof ApiError) {
         setApiError(error.message);

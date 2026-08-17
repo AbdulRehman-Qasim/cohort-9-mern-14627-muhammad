@@ -65,9 +65,13 @@ const RegisterPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await register(formData.name, formData.email, formData.password);
-      setIsSuccess(true);
-      setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+      const response = await register(formData.name, formData.email, formData.password);
+      if (response.success) {
+        setIsSuccess(true);
+        setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+      } else {
+        setApiError(response.error || 'Registration failed. Please try again.');
+      }
     } catch (error) {
       if (error instanceof ApiError) {
         setApiError(error.message);
