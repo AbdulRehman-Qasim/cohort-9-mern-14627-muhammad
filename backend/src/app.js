@@ -6,6 +6,9 @@ const pinoHttp = require('pino-http');
 const logger = require('./utils/logger');
 const errorHandler = require('./middlewares/errorHandler');
 
+const authRoutes = require('./routes/auth.routes');
+const notesRoutes = require('./routes/notes.routes');
+
 const app = express();
 
 const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -41,8 +44,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // Routes
-const authRoutes = require('./routes/auth.routes');
 app.use('/api/auth', authRoutes);
+app.use('/api/notes', notesRoutes);
 
 // 404 Not Found Middleware
 app.use((req, res) => {
@@ -53,4 +56,3 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 module.exports = app;
-
