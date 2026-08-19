@@ -1,13 +1,11 @@
 const { verifyToken } = require('../utils/jwt');
 
 const authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies ? req.cookies.jwt : null;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = verifyToken(token);
@@ -19,3 +17,4 @@ const authenticate = (req, res, next) => {
 };
 
 module.exports = authenticate;
+
