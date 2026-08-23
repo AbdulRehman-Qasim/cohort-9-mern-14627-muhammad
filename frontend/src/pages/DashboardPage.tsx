@@ -24,7 +24,10 @@ function isImportNoteEntry(value: unknown): value is ImportNoteEntry {
 function sanitize(html: string): string {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['b', 'i', 'u', 'strong', 'em', 'ul', 'ol', 'li', 'p', 'br', 'h1', 'h2', 'h3', 'a'],
-    ALLOWED_ATTR: ['href', 'target', 'rel'],
+    ALLOWED_ATTR: ['href', 'rel'],
+    FORCE_BODY: true,
+    ADD_ATTR: ['rel'],
+    FORBID_ATTR: ['style', 'class'],
   });
 }
 

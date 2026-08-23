@@ -104,6 +104,7 @@ const LoginPage: React.FC = () => {
                   className="password-toggle"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
                 >
                   <EyeIcon open={showPassword} />
                 </button>

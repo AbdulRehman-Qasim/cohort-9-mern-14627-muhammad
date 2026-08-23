@@ -360,7 +360,8 @@
   display:flex; gap:.3rem; flex-shrink:0;
   opacity:0; transition:opacity .18s;
 }
-.note-card:hover .note-card-actions { opacity:1; }
+.note-card:hover .note-card-actions,
+.note-card:focus-within .note-card-actions { opacity:1; }
 .note-card-content {
   color:var(--text); font-size:.845rem; line-height:1.65;
   margin-bottom:.75rem; word-break:break-word;
