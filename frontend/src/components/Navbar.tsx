@@ -1,11 +1,9 @@
 import React, { useContext } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-
 const Navbar: React.FC = () => {
   const { isAuthenticated, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -15,18 +13,20 @@ const Navbar: React.FC = () => {
       navigate('/login');
     }
   };
-
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <Link to="/">Notes App</Link>
+        <Link to="/">
+          <span className="navbar-brand-dot">📒</span>
+          Notes App
+        </Link>
       </div>
       <div className="navbar-links">
         <NavLink to="/">Home</NavLink>
         {isAuthenticated ? (
           <>
             <NavLink to="/dashboard">Dashboard</NavLink>
-            <button onClick={handleLogout} className="submit-btn" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }}>
+            <button onClick={handleLogout} className="navbar-logout-btn">
               Logout
             </button>
           </>
@@ -40,5 +40,4 @@ const Navbar: React.FC = () => {
     </nav>
   );
 };
-
 export default Navbar;

@@ -2,7 +2,6 @@ import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import authService from '../services/auth.service';
 import { setSessionId } from '../services/api';
 import { User, ApiResponse } from '../types/auth.types';
-
 export interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -11,8 +10,6 @@ export interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<ApiResponse<User>>;
   logout: () => Promise<void>;
 }
-
-// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
@@ -21,18 +18,14 @@ export const AuthContext = createContext<AuthContextType>({
   register: async () => ({ success: false }),
   logout: async () => {},
 });
-
 interface AuthProviderProps {
   children: ReactNode;
 }
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-
   useEffect(() => {
     let isActive = true;
-
     const initializeAuth = async () => {
       try {
         const response = await authService.getCurrentUser();
@@ -57,26 +50,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     };
-
     initializeAuth();
-
     return () => {
       isActive = false;
     };
   }, []);
-
   useEffect(() => {
     const handleUnauthorized = () => {
       setSessionId(null);
       setUser(null);
     };
-
     window.addEventListener('auth:unauthorized', handleUnauthorized);
     return () => {
       window.removeEventListener('auth:unauthorized', handleUnauthorized);
     };
   }, []);
-
   const login = async (email: string, password: string): Promise<ApiResponse<User>> => {
     try {
       const response = await authService.login(email, password);
@@ -91,7 +79,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { success: false, error: errorMessage };
     }
   };
-
   const register = async (name: string, email: string, password: string): Promise<ApiResponse<User>> => {
     try {
       return await authService.register(name, email, password);
@@ -100,18 +87,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { success: false, error: errorMessage };
     }
   };
-
   const logout = async (): Promise<void> => {
     try {
       await authService.logout();
     } catch {
-      // Ignore logout API failures if session is already invalid
     } finally {
       setSessionId(null);
       setUser(null);
     }
   };
-
   const value: AuthContextType = {
     user,
     loading,
@@ -120,6 +104,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
   };
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
