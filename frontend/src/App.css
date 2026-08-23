@@ -258,7 +258,10 @@
   background:var(--bg-card); border:1px solid var(--border);
   border-radius:30px; padding:.35rem .875rem .35rem .35rem;
   box-shadow:var(--shadow-xs);
+  cursor:pointer; font-family:var(--font);
+  transition:box-shadow .18s, border-color .18s;
 }
+.dash-user-chip:hover { border-color:var(--accent-border); box-shadow:var(--shadow-sm); }
 .dash-avatar {
   width:30px; height:30px; border-radius:50%;
   background:var(--grad); color:#fff;
@@ -360,9 +363,9 @@
 .note-card:hover .note-card-actions { opacity:1; }
 .note-card-content {
   color:var(--text); font-size:.845rem; line-height:1.65;
-  margin-bottom:.75rem; white-space:pre-wrap; word-break:break-word;
+  margin-bottom:.75rem; word-break:break-word;
   overflow:hidden; display:-webkit-box;
-  -webkit-line-clamp:5; line-clamp:5; -webkit-box-orient:vertical;
+  -webkit-line-clamp:5; -webkit-box-orient:vertical;
 }
 .note-card-footer {
   font-size:.7rem; color:var(--text); opacity:.7;

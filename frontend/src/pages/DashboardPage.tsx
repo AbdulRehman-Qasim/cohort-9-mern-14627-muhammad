@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import { AuthContext } from '../context/AuthContext';
 import notesService from '../services/notes.service';
 import { Note } from '../types/notes.types';
@@ -8,6 +9,24 @@ import NoteEditorModal from '../components/NoteEditorModal';
 import { io, Socket } from 'socket.io-client';
 
 type SortOrder = 'newest' | 'oldest' | 'title-az' | 'title-za';
+
+interface ImportNoteEntry {
+  title: string;
+  content: string;
+}
+
+function isImportNoteEntry(value: unknown): value is ImportNoteEntry {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const obj = value as Record<string, unknown>;
+  return typeof obj['title'] === 'string' && obj['title'].trim().length > 0;
+}
+
+function sanitize(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['b', 'i', 'u', 'strong', 'em', 'ul', 'ol', 'li', 'p', 'br', 'h1', 'h2', 'h3', 'a'],
+    ALLOWED_ATTR: ['href', 'target', 'rel'],
+  });
+}
 
 const DashboardPage: React.FC = () => {
   const { user } = useContext(AuthContext);
@@ -79,12 +98,12 @@ const DashboardPage: React.FC = () => {
     const apiUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
     socketRef.current = io(apiUrl, {
       query: { userId: user.id },
-      withCredentials: true
+      withCredentials: true,
     });
 
     socketRef.current.on('NOTE_CREATED', (newNote: Note) => {
       setNotes((prev) => {
-        if (prev.some(n => n.id === newNote.id)) return prev;
+        if (prev.some((n) => n.id === newNote.id)) return prev;
         return [newNote, ...prev];
       });
     });
@@ -113,7 +132,7 @@ const DashboardPage: React.FC = () => {
       const response = await notesService.createNote({ title: title.trim(), content: content.trim() });
       if (response.success && response.data) {
         setNotes((prev) => {
-          if (prev.some(n => n.id === response.data!.id)) return prev;
+          if (prev.some((n) => n.id === response.data!.id)) return prev;
           return [response.data!, ...prev];
         });
         setIsCreateModalOpen(false);
@@ -185,6 +204,7 @@ const DashboardPage: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,20 +214,36 @@ const DashboardPage: React.FC = () => {
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
-        const parsed = JSON.parse(event.target?.result as string);
-        if (!Array.isArray(parsed)) throw new Error('Invalid format');
+        const raw: unknown = JSON.parse(event.target?.result as string);
 
-        const response = await notesService.importNotes(parsed);
+        if (!Array.isArray(raw)) {
+          alert('Invalid file format. Expected a JSON array of notes.');
+          return;
+        }
+
+        const sanitizedEntries: ImportNoteEntry[] = raw
+          .filter(isImportNoteEntry)
+          .map((entry) => ({
+            title: entry.title.trim(),
+            content: typeof entry.content === 'string' ? entry.content : '',
+          }));
+
+        if (sanitizedEntries.length === 0) {
+          alert('No valid notes found in the file. Each note must have a non-empty title.');
+          return;
+        }
+
+        const response = await notesService.importNotes(sanitizedEntries);
         if (response.success && response.data) {
           const newNotes = response.data;
-          setNotes(prev => {
-            const map = new Map(prev.map(n => [n.id, n]));
-            newNotes.forEach(n => map.set(n.id, n));
+          setNotes((prev) => {
+            const map = new Map(prev.map((n) => [n.id, n]));
+            newNotes.forEach((n) => map.set(n.id, n));
             return Array.from(map.values());
           });
         }
-      } catch (err) {
-        alert('Failed to parse or import JSON file. Please make sure the format is correct.');
+      } catch {
+        alert('Failed to parse the JSON file. Please make sure it is a valid notes export.');
       }
     };
     reader.readAsText(file);
@@ -229,17 +265,17 @@ const DashboardPage: React.FC = () => {
               📌 {notes.length} note{notes.length !== 1 ? 's' : ''}
             </span>
           )}
-          <div
+          <button
+            type="button"
             className="dash-user-chip"
             onClick={() => setIsProfileModalOpen(true)}
-            style={{ cursor: 'pointer' }}
             title="Account Settings"
           >
             <div className="dash-avatar">
               {(user?.name || 'U').charAt(0).toUpperCase()}
             </div>
             <span>{user?.name?.split(' ')[0] || 'User'}</span>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -273,10 +309,10 @@ const DashboardPage: React.FC = () => {
             <option value="title-az">Title (A-Z)</option>
             <option value="title-za">Title (Z-A)</option>
           </select>
-          <button onClick={handleExport} className="btn-secondary" style={{ padding: '0.45rem 0.75rem', height: '100%' }}>
+          <button type="button" onClick={handleExport} className="btn-secondary" style={{ padding: '0.45rem 0.75rem', height: '100%' }}>
             Export
           </button>
-          <button onClick={() => fileInputRef.current?.click()} className="btn-secondary" style={{ padding: '0.45rem 0.75rem', height: '100%' }}>
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-secondary" style={{ padding: '0.45rem 0.75rem', height: '100%' }}>
             Import
           </button>
           <input
@@ -296,7 +332,7 @@ const DashboardPage: React.FC = () => {
           <div className="empty-state-icon">⚠️</div>
           <h4>Oops, something went wrong</h4>
           <p>{error}</p>
-          <button className="submit-btn" onClick={() => window.location.reload()} style={{ width: 'auto', marginTop: '0.5rem' }}>
+          <button type="button" className="submit-btn" onClick={() => window.location.reload()} style={{ width: 'auto', marginTop: '0.5rem' }}>
             Try Again
           </button>
         </div>
@@ -305,7 +341,7 @@ const DashboardPage: React.FC = () => {
           <div className="empty-state-icon">📝</div>
           <h4>No notes yet</h4>
           <p>You haven't created any notes. Click the button below to capture your first idea.</p>
-          <button className="submit-btn" onClick={() => setIsCreateModalOpen(true)} style={{ width: 'auto', marginTop: '0.5rem' }}>
+          <button type="button" className="submit-btn" onClick={() => setIsCreateModalOpen(true)} style={{ width: 'auto', marginTop: '0.5rem' }}>
             + Create your first note
           </button>
         </div>
@@ -320,7 +356,7 @@ const DashboardPage: React.FC = () => {
 
           {displayedNotes.length === 0 ? (
             <div className="no-results">
-              No notes match your search "{searchQuery}".
+              No notes match your search &ldquo;{searchQuery}&rdquo;.
             </div>
           ) : (
             <div className="notes-grid">
@@ -331,6 +367,7 @@ const DashboardPage: React.FC = () => {
                       <h4 className="note-card-title">{note.title}</h4>
                       <div className="note-card-actions">
                         <button
+                          type="button"
                           className="btn-icon btn-icon-edit"
                           onClick={() => setEditingNote(note)}
                           aria-label={`Edit ${note.title}`}
@@ -338,6 +375,7 @@ const DashboardPage: React.FC = () => {
                           ✎
                         </button>
                         <button
+                          type="button"
                           className={`btn-icon btn-icon-delete ${deletingNoteId === note.id ? 'deleting' : ''}`}
                           onClick={() => handleDeleteNote(note.id)}
                           disabled={deletingNoteId === note.id}
@@ -350,7 +388,7 @@ const DashboardPage: React.FC = () => {
 
                     <div
                       className="note-card-content"
-                      dangerouslySetInnerHTML={{ __html: note.content }}
+                      dangerouslySetInnerHTML={{ __html: sanitize(note.content) }}
                     />
 
                     <div className="note-card-footer">
@@ -370,6 +408,7 @@ const DashboardPage: React.FC = () => {
 
       {!loading && !error && (
         <button
+          type="button"
           className="fab-new-note"
           onClick={() => setIsCreateModalOpen(true)}
           aria-label="Create new note"
