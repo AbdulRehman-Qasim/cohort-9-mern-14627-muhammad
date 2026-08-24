@@ -1,12 +1,11 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
-import app from './src/app';
-import logger from './src/utils/logger';
-import socketUtil from './src/utils/socket';
-import prisma from './src/config/prisma';
-import { verifyToken } from './src/utils/jwt';
-const cookie = require('cookie');
+// @ts-check
+require('dotenv').config();
+const app = require('./src/app');
+const logger = require('./src/utils/logger');
+const socketUtil = require('./src/utils/socket');
+const prisma = require('./src/config/prisma');
+const { verifyToken } = require('./src/utils/jwt');
+const { parse } = /** @type {any} */ (require('cookie'));
 
 const PORT = process.env.PORT || 5000;
 
@@ -24,15 +23,16 @@ io.use((socketConn, next) => {
       return next(new Error('Authentication error: No cookies'));
     }
 
-    const parsedCookies = cookie.parse(cookies);
+    const parsedCookies = parse(cookies);
     const token = parsedCookies.jwt;
 
     if (!token) {
       return next(new Error('Authentication error: Missing token'));
     }
 
-    const decoded = (verifyToken(token) as unknown) as { id: string };
-    
+    /** @type {{ id: string }} */
+    const decoded = /** @type {any} */ (verifyToken(token));
+
     // Attach the verified user ID to the socket
     socketConn.data.user = decoded;
     next();
@@ -50,7 +50,11 @@ io.on('connection', (socketConn) => {
 
 let isShuttingDown = false;
 
-const gracefulShutdown = (signal: string, exitCode = 0) => {
+/**
+ * @param {string} signal
+ * @param {number} [exitCode=0]
+ */
+const gracefulShutdown = (signal, exitCode = 0) => {
   if (isShuttingDown) return;
   isShuttingDown = true;
   logger.info(`${signal} signal received: closing HTTP server`);
@@ -65,7 +69,7 @@ const gracefulShutdown = (signal: string, exitCode = 0) => {
     try {
       await prisma.$disconnect();
       logger.info('Prisma database connection closed');
-    } catch (dbErr: any) {
+    } catch (/** @type {any} */ dbErr) {
       logger.error(`Error closing Prisma database connection: ${dbErr.message}`);
     }
     process.exit(exitCode);
@@ -75,7 +79,7 @@ const gracefulShutdown = (signal: string, exitCode = 0) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-process.on('unhandledRejection', (err: Error) => {
+process.on('unhandledRejection', (/** @type {Error} */ err) => {
   logger.error(`Unhandled Rejection: ${err.message}`);
   gracefulShutdown('unhandledRejection', 1);
 });

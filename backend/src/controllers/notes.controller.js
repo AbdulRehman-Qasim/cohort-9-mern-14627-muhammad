@@ -1,18 +1,20 @@
-import { Request, Response, NextFunction } from 'express';
-import notesService from '../services/notes.service';
-import socketUtil from '../utils/socket';
-import prisma from '../config/prisma';
+// @ts-check
+/**
+ * @typedef {import('express').Request} Request
+ * @typedef {import('express').Response} Response
+ * @typedef {import('express').NextFunction} NextFunction
+ */
 
-// Extend Express Request to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
+const notesService = require('../services/notes.service');
+const socketUtil = require('../utils/socket');
+const prisma = require('../config/prisma');
 
-const createNote = async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * @param {Request & { user?: any }} req
+ * @param {Response} res
+ * @param {NextFunction} next
+ */
+const createNote = async (req, res, next) => {
   try {
     const { title, content } = req.body;
     const data = await notesService.createNote(req.user.id, { title, content });
@@ -25,7 +27,12 @@ const createNote = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const getNotes = async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * @param {Request & { user?: any }} req
+ * @param {Response} res
+ * @param {NextFunction} next
+ */
+const getNotes = async (req, res, next) => {
   try {
     const data = await notesService.getNotes(req.user.id);
     res.status(200).json({ success: true, data });
@@ -34,7 +41,12 @@ const getNotes = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const getNoteById = async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * @param {Request & { user?: any }} req
+ * @param {Response} res
+ * @param {NextFunction} next
+ */
+const getNoteById = async (req, res, next) => {
   try {
     const data = await notesService.getNoteById(req.params.id, req.user.id);
     res.status(200).json({ success: true, data });
@@ -43,7 +55,12 @@ const getNoteById = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const updateNote = async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * @param {Request & { user?: any }} req
+ * @param {Response} res
+ * @param {NextFunction} next
+ */
+const updateNote = async (req, res, next) => {
   try {
     const { title, content } = req.body;
     const data = await notesService.updateNote(req.params.id, req.user.id, { title, content });
@@ -56,7 +73,12 @@ const updateNote = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const deleteNote = async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * @param {Request & { user?: any }} req
+ * @param {Response} res
+ * @param {NextFunction} next
+ */
+const deleteNote = async (req, res, next) => {
   try {
     const data = await notesService.deleteNote(req.params.id, req.user.id);
     try {
@@ -68,24 +90,34 @@ const deleteNote = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const importNotes = async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * @param {Request & { user?: any }} req
+ * @param {Response} res
+ * @param {NextFunction} next
+ */
+const importNotes = async (req, res, next) => {
   try {
     const notesToImport = req.body.notes;
     if (!Array.isArray(notesToImport)) {
-      return res.status(400).json({ success: false, error: 'Invalid format. Expected an array of notes.' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Invalid format. Expected an array of notes.' });
     }
 
-    const validNotesToCreate: Array<{ title: string; content: string; userId: string }> = [];
+    /** @type {Array<{ title: string; content: string; userId: string }>} */
+    const validNotesToCreate = [];
 
     // Validate payloads before transaction
     for (const note of notesToImport) {
       if (!note.title || typeof note.title !== 'string' || note.title.trim() === '') {
-        return res.status(400).json({ success: false, error: 'All imported notes must have a valid title.' });
+        return res
+          .status(400)
+          .json({ success: false, error: 'All imported notes must have a valid title.' });
       }
       validNotesToCreate.push({
         title: note.title.trim(),
         content: typeof note.content === 'string' ? note.content.trim() : '',
-        userId: req.user.id
+        userId: req.user.id,
       });
     }
 
@@ -97,9 +129,9 @@ const importNotes = async (req: Request, res: Response, next: NextFunction) => {
     const createdNotes = await prisma.$transaction(
       validNotesToCreate.map((noteData) =>
         prisma.note.create({
-          data: noteData
-        })
-      )
+          data: noteData,
+        }),
+      ),
     );
 
     // Emit socket events only after successful commit
@@ -116,11 +148,11 @@ const importNotes = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export = {
+module.exports = {
   createNote,
   getNotes,
   getNoteById,
   updateNote,
   deleteNote,
-  importNotes
+  importNotes,
 };
