@@ -100,7 +100,6 @@ const DashboardPage: React.FC = () => {
 
     const apiUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
     socketRef.current = io(apiUrl, {
-      query: { userId: user.id },
       withCredentials: true,
     });
 

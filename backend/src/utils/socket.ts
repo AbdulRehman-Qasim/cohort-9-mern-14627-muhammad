@@ -1,7 +1,11 @@
-let io;
-module.exports = {
-  init: (server) => {
-    io = require('socket.io')(server, {
+import { Server as HttpServer } from 'http';
+import { Server } from 'socket.io';
+
+let io: Server | undefined;
+
+export = {
+  init: (server: HttpServer): Server => {
+    io = new Server(server, {
       cors: {
         origin: process.env.FRONTEND_URL || 'http://localhost:5173',
         credentials: true
@@ -9,7 +13,7 @@ module.exports = {
     });
     return io;
   },
-  getIo: () => {
+  getIo: (): Server => {
     if (!io) {
       throw new Error('Socket.io not initialized');
     }
