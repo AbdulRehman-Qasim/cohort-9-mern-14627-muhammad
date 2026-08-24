@@ -109,7 +109,12 @@ const importNotes = async (req, res, next) => {
 
     // Validate payloads before transaction
     for (const note of notesToImport) {
-      if (!note.title || typeof note.title !== 'string' || note.title.trim() === '') {
+      if (
+        !note ||
+        typeof note !== 'object' ||
+        typeof note.title !== 'string' ||
+        note.title.trim() === ''
+      ) {
         return res
           .status(400)
           .json({ success: false, error: 'All imported notes must have a valid title.' });
@@ -126,6 +131,7 @@ const importNotes = async (req, res, next) => {
     }
 
     // Atomic transaction
+    /** @type {Array<{ id: string; title: string; content: string; userId: string; createdAt: Date; updatedAt: Date; }>} */
     const createdNotes = await prisma.$transaction(
       validNotesToCreate.map((noteData) =>
         prisma.note.create({

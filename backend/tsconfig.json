@@ -9,14 +9,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
     "allowJs": true,
     "checkJs": false
   },
-  "include": [
-    "server.js",
-    "src/utils/socket.js",
-    "src/controllers/notes.controller.js"
-  ],
+  "include": ["server.js", "src/utils/socket.js", "src/controllers/notes.controller.js"],
   "exclude": ["node_modules", "src/generated"]
 }
