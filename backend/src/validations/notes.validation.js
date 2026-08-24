@@ -1,5 +1,4 @@
 const { body } = require('express-validator');
-
 const validateCreateNote = [
   body('title')
     .isString().withMessage('Title must be a string')
@@ -9,7 +8,6 @@ const validateCreateNote = [
     .optional()
     .isString().withMessage('Content must be a string'),
 ];
-
 const validateUpdateNote = [
   body('title')
     .optional()
@@ -27,7 +25,6 @@ const validateUpdateNote = [
       return true;
     }),
 ];
-
 module.exports = {
   validateCreateNote,
   validateUpdateNote,
