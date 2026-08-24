@@ -8,21 +8,18 @@ import DashboardPage from './pages/DashboardPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 import './App.css';
-
 const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<MainLayout />}>
-        {/* Public Routes */}
+        {}
         <Route index element={<HomePage />} />
-
-        {/* Auth Routes (Redirect to dashboard if logged in) */}
+        {}
         <Route element={<PublicRoute />}>
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
         </Route>
-
-        {/* Protected Routes */}
+        {}
         <Route element={<ProtectedRoute />}>
           <Route path="dashboard" element={<DashboardPage />} />
         </Route>
@@ -30,5 +27,4 @@ const App: React.FC = () => {
     </Routes>
   );
 };
-
 export default App;

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-
 const MainLayout: React.FC = () => {
   return (
     <div className="main-layout">
@@ -12,5 +11,4 @@ const MainLayout: React.FC = () => {
     </div>
   );
 };
-
 export default MainLayout;
