@@ -17,6 +17,9 @@ const errorHandler = (err, req, res, next) => {
     message = 'Database request error';
     if (err.code === 'P2002') {
       message = 'Unique constraint failed on the database';
+    } else if (err.code === 'P2024') {
+      statusCode = 503;
+      message = 'Service Unavailable';
     }
   } else if (err instanceof Prisma.PrismaClientValidationError) {
     statusCode = 400;

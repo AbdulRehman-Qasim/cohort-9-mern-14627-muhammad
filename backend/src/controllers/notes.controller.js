@@ -166,8 +166,11 @@ const importNotes = async (req, res, next) => {
       });
     } catch (err) {}
 
+    logger.info({ userId: req.user.id, importedCount: createdNotes.length }, 'Notes imported successfully');
     res.status(201).json({ success: true, data: createdNotes });
   } catch (error) {
+    const errMessage = error instanceof Error ? error.message : String(error);
+    logger.warn({ userId: req.user.id, error: errMessage }, 'Failed to import notes');
     next(error);
   }
 };

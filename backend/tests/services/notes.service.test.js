@@ -58,13 +58,16 @@ describe('Notes Service', () => {
     it('should throw 404 if note not found', async () => {
       prismaMock.note.findFirst.resolves(null);
 
+      let caughtErr;
       try {
         await notesService.getNoteById('note1', 'user1');
-        expect.fail('Should have thrown');
       } catch (err) {
-        expect(err.message).to.equal('Note not found');
-        expect(err.statusCode).to.equal(404);
+        caughtErr = err;
       }
+
+      expect(caughtErr).to.exist;
+      expect(caughtErr.message).to.equal('Note not found');
+      expect(caughtErr.statusCode).to.equal(404);
     });
 
     it('should return note if found and owned by user', async () => {

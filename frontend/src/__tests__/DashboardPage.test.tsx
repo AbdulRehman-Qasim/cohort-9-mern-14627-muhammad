@@ -15,7 +15,7 @@ jest.mock('socket.io-client', () => ({
   }))
 }));
 
-const renderWithContext = (component: React.ReactNode) => {
+const renderWithContext = (component: React.ReactNode): ReturnType<typeof render> => {
   return render(
     <AuthContext.Provider
       value={{

@@ -21,7 +21,8 @@ const register = async (req, res, next) => {
       data: user,
     });
   } catch (error) {
-    logger.warn({ error: error.message }, 'User registration failed');
+    const errMessage = error instanceof Error ? error.message : String(error);
+    logger.warn({ error: errMessage }, 'User registration failed');
     next(error);
   }
 };
@@ -39,7 +40,8 @@ const login = async (req, res, next) => {
       data: user,
     });
   } catch (error) {
-    logger.warn({ error: error.message }, 'User login failed');
+    const errMessage = error instanceof Error ? error.message : String(error);
+    logger.warn({ error: errMessage }, 'User login failed');
     next(error);
   }
 };

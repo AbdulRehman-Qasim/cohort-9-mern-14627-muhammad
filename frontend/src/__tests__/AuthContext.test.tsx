@@ -6,7 +6,7 @@ import authService from '../services/auth.service';
 
 jest.mock('../services/auth.service');
 
-const TestComponent = () => {
+const TestComponent = (): React.JSX.Element => {
   const { user, loading, isAuthenticated, login, logout } = useContext(AuthContext);
   
   if (loading) return <div>Loading...</div>;

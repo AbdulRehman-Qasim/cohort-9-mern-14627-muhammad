@@ -38,13 +38,16 @@ describe('Auth Service', () => {
     it('should throw an error if user already exists', async () => {
       prismaMock.user.findUnique.resolves({ id: '1' });
 
+      let caughtErr;
       try {
         await authService.registerUser('Test', 'test@test.com', 'password');
-        expect.fail('Should have thrown an error');
       } catch (err) {
-        expect(err.message).to.equal('User with this email already exists');
-        expect(err.statusCode).to.equal(400);
+        caughtErr = err;
       }
+      
+      expect(caughtErr).to.exist;
+      expect(caughtErr.message).to.equal('User with this email already exists');
+      expect(caughtErr.statusCode).to.equal(400);
     });
 
     it('should create a new user successfully', async () => {
@@ -64,26 +67,32 @@ describe('Auth Service', () => {
     it('should throw 401 if user not found', async () => {
       prismaMock.user.findUnique.resolves(null);
 
+      let caughtErr;
       try {
         await authService.loginUser('test@test.com', 'password');
-        expect.fail('Should have thrown');
       } catch (err) {
-        expect(err.message).to.equal('Invalid email or password');
-        expect(err.statusCode).to.equal(401);
+        caughtErr = err;
       }
+
+      expect(caughtErr).to.exist;
+      expect(caughtErr.message).to.equal('Invalid email or password');
+      expect(caughtErr.statusCode).to.equal(401);
     });
 
     it('should throw 401 if password is invalid', async () => {
       prismaMock.user.findUnique.resolves({ id: '1', password: 'hashed' });
       passwordMock.comparePassword.resolves(false);
 
+      let caughtErr;
       try {
         await authService.loginUser('test@test.com', 'password');
-        expect.fail('Should have thrown');
       } catch (err) {
-        expect(err.message).to.equal('Invalid email or password');
-        expect(err.statusCode).to.equal(401);
+        caughtErr = err;
       }
+
+      expect(caughtErr).to.exist;
+      expect(caughtErr.message).to.equal('Invalid email or password');
+      expect(caughtErr.statusCode).to.equal(401);
     });
 
     it('should login successfully and return token and safe user', async () => {

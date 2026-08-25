@@ -7,7 +7,7 @@ import '@testing-library/jest-dom';
 
 const mockLogin = jest.fn();
 
-const renderWithContext = (component: React.ReactNode) => {
+const renderWithContext = (component: React.ReactNode): ReturnType<typeof render> => {
   return render(
     <AuthContext.Provider
       value={{
