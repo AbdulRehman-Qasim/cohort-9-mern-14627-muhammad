@@ -27,7 +27,8 @@ const createNote = async (req, res, next) => {
     logger.info({ userId: req.user.id, noteId: data.id }, 'Note created');
     res.status(201).json({ success: true, data });
   } catch (error) {
-    logger.warn({ userId: req.user.id, error: error.message }, 'Failed to create note');
+    const errMessage = error instanceof Error ? error.message : String(error);
+    logger.warn({ userId: req.user.id, error: errMessage }, 'Failed to create note');
     next(error);
   }
 };
@@ -56,7 +57,8 @@ const getNoteById = async (req, res, next) => {
     const data = await notesService.getNoteById(req.params.id, req.user.id);
     res.status(200).json({ success: true, data });
   } catch (error) {
-    logger.warn({ userId: req.user.id, noteId: req.params.id, error: error.message }, 'Failed to fetch note by id');
+    const errMessage = error instanceof Error ? error.message : String(error);
+    logger.warn({ userId: req.user.id, noteId: req.params.id, error: errMessage }, 'Failed to fetch note by id');
     next(error);
   }
 };
@@ -75,10 +77,11 @@ const updateNote = async (req, res, next) => {
       socketUtil.getIo().to(req.user.id).emit('NOTE_UPDATED', data);
     } catch (err) {}
     
-    logger.info({ userId: req.user.id, noteId: data.id }, 'Note updated');
+    logger.info({ userId: req.user.id, noteId: data ? data.id : req.params.id }, 'Note updated');
     res.status(200).json({ success: true, data });
   } catch (error) {
-    logger.warn({ userId: req.user.id, noteId: req.params.id, error: error.message }, 'Failed to update note');
+    const errMessage = error instanceof Error ? error.message : String(error);
+    logger.warn({ userId: req.user.id, noteId: req.params.id, error: errMessage }, 'Failed to update note');
     next(error);
   }
 };
@@ -99,7 +102,8 @@ const deleteNote = async (req, res, next) => {
     logger.info({ userId: req.user.id, noteId: req.params.id }, 'Note deleted');
     res.status(200).json({ success: true, data });
   } catch (error) {
-    logger.warn({ userId: req.user.id, noteId: req.params.id, error: error.message }, 'Failed to delete note');
+    const errMessage = error instanceof Error ? error.message : String(error);
+    logger.warn({ userId: req.user.id, noteId: req.params.id, error: errMessage }, 'Failed to delete note');
     next(error);
   }
 };
