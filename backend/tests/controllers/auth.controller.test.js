@@ -36,72 +36,59 @@ describe('Auth Controller', () => {
   });
 
   describe('register', () => {
-    it('should register a user successfully and return 201', async () => {
+    it('should register a user successfully and return 201', () => {
       req.body = { name: 'Test', email: 'test@test.com', password: 'password' };
       const createdUser = { id: '1', name: 'Test', email: 'test@test.com' };
       authServiceMock.registerUser.resolves(createdUser);
 
-      await authController.register(req, res, next);
-
-      expect(res.status.calledWith(201)).to.be.true;
-      expect(res.json.calledWith({ success: true, data: createdUser })).to.be.true;
+      return authController.register(req, res, next).then(() => {
+        expect(res.status.calledWith(201)).to.be.true;
+        expect(res.json.calledWith({ success: true, data: createdUser })).to.be.true;
+      });
     });
 
-    it('should call next with error if service fails', async () => {
+    it('should call next with error if service fails', () => {
       req.body = { name: 'Test', email: 'test@test.com', password: 'password' };
       const error = new Error('Service error');
       authServiceMock.registerUser.rejects(error);
 
-      let caughtError;
-      try {
-        await authController.register(req, res, next);
-      } catch (err) {
-        caughtError = err;
-      }
-
-      // Controller should catch and forward to next()
-      expect(caughtError).to.not.exist;
-      expect(next.calledWith(error)).to.be.true;
+      return authController.register(req, res, next).then(() => {
+        expect(next.calledWith(error)).to.be.true;
+      });
     });
   });
 
   describe('login', () => {
-    it('should login successfully, set cookie and return 200', async () => {
+    it('should login successfully, set cookie and return 200', () => {
       req.body = { email: 'test@test.com', password: 'password' };
       const user = { id: '1', email: 'test@test.com' };
       authServiceMock.loginUser.resolves({ token: 'jwt_token', user });
 
-      await authController.login(req, res, next);
-
-      expect(res.cookie.calledWith('jwt', 'jwt_token')).to.be.true;
-      expect(res.status.calledWith(200)).to.be.true;
-      expect(res.json.calledWith({ success: true, data: user })).to.be.true;
+      return authController.login(req, res, next).then(() => {
+        expect(res.cookie.calledWith('jwt', 'jwt_token')).to.be.true;
+        expect(res.status.calledWith(200)).to.be.true;
+        expect(res.json.calledWith({ success: true, data: user })).to.be.true;
+      });
     });
 
-    it('should call next with error if login fails', async () => {
+    it('should call next with error if login fails', () => {
       req.body = { email: 'test@test.com', password: 'password' };
       const error = new Error('Invalid email or password');
       authServiceMock.loginUser.rejects(error);
 
-      let caughtError;
-      try {
-        await authController.login(req, res, next);
-      } catch (err) {
-        caughtError = err;
-      }
-
-      expect(caughtError).to.not.exist;
-      expect(next.calledWith(error)).to.be.true;
+      return authController.login(req, res, next).then(() => {
+        expect(next.calledWith(error)).to.be.true;
+      });
     });
   });
 
   describe('logout', () => {
-    it('should clear cookie and return 200', async () => {
-      await authController.logout(req, res, next);
-
-      expect(res.clearCookie.calledWith('jwt')).to.be.true;
-      expect(res.status.calledWith(200)).to.be.true;
-      expect(res.json.calledWith({ success: true, message: 'Logged out successfully' })).to.be.true;
+    it('should clear cookie and return 200', () => {
+      return authController.logout(req, res, next).then(() => {
+        expect(res.clearCookie.calledWith('jwt')).to.be.true;
+        expect(res.status.calledWith(200)).to.be.true;
+        expect(res.json.calledWith({ success: true, message: 'Logged out successfully' })).to.be.true;
+      });
     });
   });
 });

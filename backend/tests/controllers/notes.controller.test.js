@@ -37,56 +37,50 @@ describe('Notes Controller', () => {
   });
 
   describe('createNote', () => {
-    it('should create a note and return 201', async () => {
+    it('should create a note and return 201', () => {
       req.body = { title: 'Test Title', content: 'Test Content' };
       const createdNote = { id: 'note1', title: 'Test Title' };
       notesServiceMock.createNote.resolves(createdNote);
 
-      await notesController.createNote(req, res, next);
-
-      expect(res.status.calledWith(201)).to.be.true;
-      expect(res.json.calledWith({ success: true, data: createdNote })).to.be.true;
+      return notesController.createNote(req, res, next).then(() => {
+        expect(res.status.calledWith(201)).to.be.true;
+        expect(res.json.calledWith({ success: true, data: createdNote })).to.be.true;
+      });
     });
 
-    it('should call next with error if service fails', async () => {
+    it('should call next with error if service fails', () => {
       req.body = { title: 'Test Title' };
       const error = new Error('Service Error');
       notesServiceMock.createNote.rejects(error);
 
-      let caughtError;
-      try {
-        await notesController.createNote(req, res, next);
-      } catch (err) {
-        caughtError = err;
-      }
-
-      expect(caughtError).to.not.exist;
-      expect(next.calledWith(error)).to.be.true;
+      return notesController.createNote(req, res, next).then(() => {
+        expect(next.calledWith(error)).to.be.true;
+      });
     });
   });
 
   describe('getNotes', () => {
-    it('should fetch notes and return 200', async () => {
+    it('should fetch notes and return 200', () => {
       const notes = [{ id: 'note1' }];
       notesServiceMock.getNotes.resolves(notes);
 
-      await notesController.getNotes(req, res, next);
-
-      expect(res.status.calledWith(200)).to.be.true;
-      expect(res.json.calledWith({ success: true, data: notes })).to.be.true;
+      return notesController.getNotes(req, res, next).then(() => {
+        expect(res.status.calledWith(200)).to.be.true;
+        expect(res.json.calledWith({ success: true, data: notes })).to.be.true;
+      });
     });
   });
 
   describe('getNoteById', () => {
-    it('should return note and 200', async () => {
+    it('should return note and 200', () => {
       const note = { id: 'note1' };
       req.params = { id: 'note1' };
       notesServiceMock.getNoteById.resolves(note);
 
-      await notesController.getNoteById(req, res, next);
-
-      expect(res.status.calledWith(200)).to.be.true;
-      expect(res.json.calledWith({ success: true, data: note })).to.be.true;
+      return notesController.getNoteById(req, res, next).then(() => {
+        expect(res.status.calledWith(200)).to.be.true;
+        expect(res.json.calledWith({ success: true, data: note })).to.be.true;
+      });
     });
   });
 });
