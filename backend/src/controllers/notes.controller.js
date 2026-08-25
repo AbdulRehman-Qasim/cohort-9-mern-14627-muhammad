@@ -22,7 +22,9 @@ const createNote = async (req, res, next) => {
     
     try {
       socketUtil.getIo().to(req.user.id).emit('NOTE_CREATED', data);
-    } catch (err) {}
+    } catch (err) {
+      logger.warn({ userId: req.user.id, error: err instanceof Error ? err.message : String(err) }, 'Failed to emit NOTE_CREATED event');
+    }
     
     logger.info({ userId: req.user.id, noteId: data.id }, 'Note created');
     res.status(201).json({ success: true, data });
@@ -75,7 +77,9 @@ const updateNote = async (req, res, next) => {
     
     try {
       socketUtil.getIo().to(req.user.id).emit('NOTE_UPDATED', data);
-    } catch (err) {}
+    } catch (err) {
+      logger.warn({ userId: req.user.id, error: err instanceof Error ? err.message : String(err) }, 'Failed to emit NOTE_UPDATED event');
+    }
     
     logger.info({ userId: req.user.id, noteId: data ? data.id : req.params.id }, 'Note updated');
     res.status(200).json({ success: true, data });
@@ -97,7 +101,9 @@ const deleteNote = async (req, res, next) => {
     
     try {
       socketUtil.getIo().to(req.user.id).emit('NOTE_DELETED', req.params.id);
-    } catch (err) {}
+    } catch (err) {
+      logger.warn({ userId: req.user.id, error: err instanceof Error ? err.message : String(err) }, 'Failed to emit NOTE_DELETED event');
+    }
     
     logger.info({ userId: req.user.id, noteId: req.params.id }, 'Note deleted');
     res.status(200).json({ success: true, data });
@@ -164,7 +170,9 @@ const importNotes = async (req, res, next) => {
       createdNotes.forEach((created) => {
         io.to(req.user.id).emit('NOTE_CREATED', created);
       });
-    } catch (err) {}
+    } catch (err) {
+      logger.warn({ userId: req.user.id, error: err instanceof Error ? err.message : String(err) }, 'Failed to emit NOTE_CREATED events');
+    }
 
     logger.info({ userId: req.user.id, importedCount: createdNotes.length }, 'Notes imported successfully');
     res.status(201).json({ success: true, data: createdNotes });

@@ -14,7 +14,7 @@ const register = async (req, res, next) => {
     const { name, email, password } = req.body;
     const user = await authService.registerUser(name, email, password);
 
-    logger.info({ userId: user.id, email: user.email }, 'User registered successfully');
+    logger.info({ userId: user.id }, 'User registered successfully');
 
     res.status(201).json({
       success: true,
@@ -33,7 +33,7 @@ const login = async (req, res, next) => {
     const { token, user } = await authService.loginUser(email, password);
 
     res.cookie('jwt', token, getCookieOptions());
-    logger.info({ userId: user.id, email: user.email }, 'User logged in successfully');
+    logger.info({ userId: user.id }, 'User logged in successfully');
 
     res.status(200).json({
       success: true,

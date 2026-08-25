@@ -53,8 +53,14 @@ describe('Notes Controller', () => {
       const error = new Error('Service Error');
       notesServiceMock.createNote.rejects(error);
 
-      await notesController.createNote(req, res, next);
+      let caughtError;
+      try {
+        await notesController.createNote(req, res, next);
+      } catch (err) {
+        caughtError = err;
+      }
 
+      expect(caughtError).to.not.exist;
       expect(next.calledWith(error)).to.be.true;
     });
   });

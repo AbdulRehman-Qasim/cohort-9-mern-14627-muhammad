@@ -52,8 +52,15 @@ describe('Auth Controller', () => {
       const error = new Error('Service error');
       authServiceMock.registerUser.rejects(error);
 
-      await authController.register(req, res, next);
+      let caughtError;
+      try {
+        await authController.register(req, res, next);
+      } catch (err) {
+        caughtError = err;
+      }
 
+      // Controller should catch and forward to next()
+      expect(caughtError).to.not.exist;
       expect(next.calledWith(error)).to.be.true;
     });
   });
@@ -76,8 +83,14 @@ describe('Auth Controller', () => {
       const error = new Error('Invalid email or password');
       authServiceMock.loginUser.rejects(error);
 
-      await authController.login(req, res, next);
+      let caughtError;
+      try {
+        await authController.login(req, res, next);
+      } catch (err) {
+        caughtError = err;
+      }
 
+      expect(caughtError).to.not.exist;
       expect(next.calledWith(error)).to.be.true;
     });
   });
