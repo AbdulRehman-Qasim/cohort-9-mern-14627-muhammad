@@ -1,7 +1,5 @@
 const pino = require('pino');
-
 const isDevelopment = process.env.NODE_ENV !== 'production';
-
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
   transport: isDevelopment
@@ -14,5 +12,4 @@ const logger = pino({
       }
     : undefined,
 });
-
 module.exports = logger;
