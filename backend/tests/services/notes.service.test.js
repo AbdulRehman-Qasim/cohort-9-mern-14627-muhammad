@@ -32,8 +32,15 @@ describe('Notes Service', () => {
       const createdNote = { id: '1', ...noteData, userId: 'user1' };
       prismaMock.note.create.resolves(createdNote);
 
-      const result = await notesService.createNote('user1', noteData);
+      let result;
+      let caughtError;
+      try {
+        result = await notesService.createNote('user1', noteData);
+      } catch (error) {
+        caughtError = error;
+      }
       
+      expect(caughtError).to.not.exist;
       expect(result).to.deep.equal(createdNote);
       expect(prismaMock.note.create.calledOnce).to.be.true;
     });
@@ -44,8 +51,15 @@ describe('Notes Service', () => {
       const notes = [{ id: '1', title: 'Test' }];
       prismaMock.note.findMany.resolves(notes);
 
-      const result = await notesService.getNotes('user1');
+      let result;
+      let caughtError;
+      try {
+        result = await notesService.getNotes('user1');
+      } catch (error) {
+        caughtError = error;
+      }
 
+      expect(caughtError).to.not.exist;
       expect(result).to.deep.equal(notes);
       expect(prismaMock.note.findMany.calledWith({
         where: { userId: 'user1' },
@@ -74,7 +88,15 @@ describe('Notes Service', () => {
       const note = { id: 'note1', userId: 'user1' };
       prismaMock.note.findFirst.resolves(note);
 
-      const result = await notesService.getNoteById('note1', 'user1');
+      let result;
+      let caughtError;
+      try {
+        result = await notesService.getNoteById('note1', 'user1');
+      } catch (error) {
+        caughtError = error;
+      }
+
+      expect(caughtError).to.not.exist;
       expect(result).to.deep.equal(note);
     });
   });

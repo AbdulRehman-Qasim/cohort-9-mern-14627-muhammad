@@ -37,9 +37,16 @@ describe('AuthContext', () => {
 
     expect(screen.getByText('Loading...')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.getByTestId('auth-status')).toHaveTextContent('Not Authenticated');
-    });
+    let caughtError;
+    try {
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('Not Authenticated');
+      });
+    } catch (error) {
+      caughtError = error;
+    }
+    
+    expect(caughtError).not.toBeDefined();
   });
 
   it('initializes as authenticated when user session exists', async () => {
@@ -52,10 +59,17 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId('auth-status')).toHaveTextContent('Authenticated');
-      expect(screen.getByTestId('user-email')).toHaveTextContent('test@test.com');
-    });
+    let caughtError;
+    try {
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('Authenticated');
+        expect(screen.getByTestId('user-email')).toHaveTextContent('test@test.com');
+      });
+    } catch (error) {
+      caughtError = error;
+    }
+    
+    expect(caughtError).not.toBeDefined();
   });
 
   it('handles login successfully', async () => {
@@ -69,17 +83,29 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId('auth-status')).toHaveTextContent('Not Authenticated');
-    });
+    let caughtInitialError;
+    try {
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('Not Authenticated');
+      });
+    } catch (error) {
+      caughtInitialError = error;
+    }
+    expect(caughtInitialError).not.toBeDefined();
 
     act(() => {
       screen.getByText('Login').click();
     });
 
-    await waitFor(() => {
-      expect(screen.getByTestId('auth-status')).toHaveTextContent('Authenticated');
-      expect(screen.getByTestId('user-email')).toHaveTextContent('test@test.com');
-    });
+    let caughtLoginError;
+    try {
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('Authenticated');
+        expect(screen.getByTestId('user-email')).toHaveTextContent('test@test.com');
+      });
+    } catch (error) {
+      caughtLoginError = error;
+    }
+    expect(caughtLoginError).not.toBeDefined();
   });
 });

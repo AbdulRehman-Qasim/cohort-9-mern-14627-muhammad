@@ -55,8 +55,15 @@ describe('Auth Service', () => {
       passwordMock.hashPassword.resolves('hashed_password');
       prismaMock.user.create.resolves({ id: '1', name: 'Test', email: 'test@test.com' });
 
-      const user = await authService.registerUser('Test', 'test@test.com', 'password');
+      let user;
+      let caughtError;
+      try {
+        user = await authService.registerUser('Test', 'test@test.com', 'password');
+      } catch (error) {
+        caughtError = error;
+      }
       
+      expect(caughtError).to.not.exist;
       expect(user).to.have.property('id', '1');
       expect(prismaMock.user.create.calledOnce).to.be.true;
       expect(passwordMock.hashPassword.calledWith('password')).to.be.true;
@@ -101,8 +108,15 @@ describe('Auth Service', () => {
       passwordMock.comparePassword.resolves(true);
       jwtMock.generateToken.returns('fake_token');
 
-      const result = await authService.loginUser('test@test.com', 'password');
+      let result;
+      let caughtError;
+      try {
+        result = await authService.loginUser('test@test.com', 'password');
+      } catch (error) {
+        caughtError = error;
+      }
 
+      expect(caughtError).to.not.exist;
       expect(result.token).to.equal('fake_token');
       expect(result.user).to.not.have.property('password');
       expect(result.user).to.have.property('email', 'test@test.com');
