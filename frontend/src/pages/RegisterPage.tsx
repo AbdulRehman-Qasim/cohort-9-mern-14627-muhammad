@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ApiError } from '../types/auth.types';
+import toast from 'react-hot-toast';
 interface RegisterFormErrors {
   name?: string;
   email?: string;
@@ -70,16 +71,19 @@ const RegisterPage: React.FC = () => {
         setIsSuccess(true);
         setFormData({ name: '', email: '', password: '', confirmPassword: '' });
       } else {
-        setApiError(response.error || 'Registration failed. Please try again.');
+        const errorMsg = response.error || 'Registration failed. Please try again.';
+        setApiError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (error) {
+      let errorMsg = 'Registration failed. Please try again.';
       if (error instanceof ApiError) {
-        setApiError(error.message);
+        errorMsg = error.message;
       } else if (error instanceof Error) {
-        setApiError(error.message);
-      } else {
-        setApiError('Registration failed. Please try again.');
+        errorMsg = error.message;
       }
+      setApiError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -88,10 +92,12 @@ const RegisterPage: React.FC = () => {
     return (
       <div className="auth-page-wrapper">
         <div className="auth-container">
-          <div className="auth-card-top" />
           <div className="auth-card-body success-container">
             <div className="auth-logo">
-              <div className="auth-logo-icon">✅</div>
+              <div className="auth-logo-icon">
+                <img src="/memoora-icon.svg" alt="Memoora Icon" style={{ width: '24px', height: '24px' }} />
+              </div>
+              <div className="auth-logo-text">Memoora</div>
             </div>
             <h2>Account Created!</h2>
             <p>Your account has been created successfully. Welcome aboard!</p>
@@ -103,6 +109,9 @@ const RegisterPage: React.FC = () => {
               Sign In Now
             </Link>
           </div>
+          <div className="auth-visual-panel">
+            <img src="/auth-visual.png" alt="Workspace" className="auth-visual-image" />
+          </div>
         </div>
       </div>
     );
@@ -110,11 +119,15 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="auth-page-wrapper">
       <div className="auth-container">
-        <div className="auth-card-top" />
         <div className="auth-card-body">
-          <div className="auth-logo"><div className="auth-logo-icon">📒</div></div>
-          <h1 className="auth-heading">Create account</h1>
-          <p className="auth-subheading">Join Notes App and start capturing your ideas</p>
+          <div className="auth-logo">
+            <div className="auth-logo-icon">
+              <img src="/memoora-icon.svg" alt="Memoora Icon" style={{ width: '24px', height: '24px' }} />
+            </div>
+            <div className="auth-logo-text">Memoora</div>
+          </div>
+          <h1 className="auth-heading">Create your account</h1>
+          <p className="auth-subheading">Start organizing your thoughts with Memoora.</p>
         {apiError && <div className="api-error" role="alert">{apiError}</div>}
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           <div className="form-group">
@@ -198,6 +211,9 @@ const RegisterPage: React.FC = () => {
         <div className="auth-link">
           Already have an account? <Link to="/login">Sign in</Link>
         </div>
+        </div>
+        <div className="auth-visual-panel">
+          <img src="/auth-visual.png" alt="Workspace" className="auth-visual-image" />
         </div>
       </div>
     </div>

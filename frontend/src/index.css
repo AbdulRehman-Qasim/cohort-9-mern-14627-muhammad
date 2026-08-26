@@ -1,56 +1,33 @@
 :root {
   --font: 'Inter', system-ui, sans-serif;
-  --bg:         #f0f2f9;
-  --bg-card:    #ffffff;
-  --bg-subtle:  #e8ebf6;
-  --text:       #60708a;
-  --text-h:     #0d1526;
-  --border:     #dde1ef;
-  --accent:        #5b5bd6;
-  --accent-hover:  #4848c0;
-  --accent-light:  rgba(91,91,214,.09);
-  --accent-ring:   rgba(91,91,214,.22);
-  --accent-border: rgba(91,91,214,.32);
-  --grad:          linear-gradient(135deg,#5b5bd6,#7c3aed);
-  --grad-soft:     linear-gradient(135deg,rgba(91,91,214,.10),rgba(124,58,237,.06));
-  --danger:        #dc2626;
-  --danger-bg:     rgba(220,38,38,.07);
-  --danger-border: rgba(220,38,38,.25);
-  --success:       #16a34a;
-  --shadow-xs: 0 1px 3px rgba(13,21,38,.06);
-  --shadow-sm: 0 2px 8px rgba(13,21,38,.08),0 1px 2px rgba(13,21,38,.04);
-  --shadow-md: 0 8px 24px rgba(13,21,38,.11),0 2px 6px rgba(13,21,38,.05);
-  --shadow-lg: 0 20px 60px rgba(13,21,38,.13),0 4px 16px rgba(13,21,38,.06);
-  --shadow-accent: 0 4px 20px rgba(91,91,214,.36);
+  --bg:         #FCFBF7;
+  --bg-card:    #FFFFFF;
+  --bg-subtle:  #F5F4EE;
+  --text:       #52525B;
+  --text-h:     #18181B;
+  --border:     #E4E4E7;
+  --accent:        #EAB308;
+  --accent-text:   #CA8A04;
+  --accent-hover:  #CA8A04;
+  --accent-light:  rgba(234, 179, 8, 0.08);
+  --accent-ring:   rgba(234, 179, 8, 0.25);
+  --accent-border: rgba(234, 179, 8, 0.35);
+  --grad:          linear-gradient(135deg, #FDE047, #EAB308);
+  --grad-soft:     linear-gradient(135deg, rgba(253,224,71,0.15), rgba(234,179,8,0.1));
+  --danger:        #ef4444;
+  --danger-bg:     rgba(239,68,68,.08);
+  --danger-border: rgba(239,68,68,.25);
+  --success:       #10b981;
+  --shadow-xs: 0 1px 2px rgba(17,24,39,.04);
+  --shadow-sm: 0 4px 12px rgba(17,24,39,.06),0 1px 2px rgba(17,24,39,.03);
+  --shadow-md: 0 12px 28px rgba(17,24,39,.08),0 4px 8px rgba(17,24,39,.04);
+  --shadow-lg: 0 24px 64px rgba(17,24,39,.1),0 8px 24px rgba(17,24,39,.05);
+  --shadow-accent: 0 6px 24px rgba(234, 179, 8, 0.25);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:         #0d1117;
-    --bg-card:    #161b27;
-    --bg-subtle:  #1c2333;
-    --text:       #8b9ab4;
-    --text-h:     #e6edf3;
-    --border:     rgba(255,255,255,.07);
-    --accent:        #6366f1;
-    --accent-hover:  #818cf8;
-    --accent-light:  rgba(99,102,241,.13);
-    --accent-ring:   rgba(99,102,241,.28);
-    --accent-border: rgba(99,102,241,.40);
-    --grad:          linear-gradient(135deg,#6366f1,#8b5cf6);
-    --grad-soft:     linear-gradient(135deg,rgba(99,102,241,.10),rgba(139,92,246,.06));
-    --danger:        #f87171;
-    --danger-bg:     rgba(248,113,113,.10);
-    --danger-border: rgba(248,113,113,.30);
-    --shadow-xs: 0 1px 3px rgba(0,0,0,.45);
-    --shadow-sm: 0 2px 10px rgba(0,0,0,.55),0 1px 3px rgba(0,0,0,.30);
-    --shadow-md: 0 8px 28px rgba(0,0,0,.60),0 2px 8px rgba(0,0,0,.40);
-    --shadow-lg: 0 20px 64px rgba(0,0,0,.70),0 6px 20px rgba(0,0,0,.45);
-    --shadow-accent: 0 4px 24px rgba(99,102,241,.40);
-  }
-}
+
 *,*::before,*::after { box-sizing: border-box; }
 body {
   margin: 0;
@@ -59,7 +36,7 @@ body {
   font-family: var(--font);
   font-size: 15px;
   line-height: 1.65;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 #root {
   width: 100%;

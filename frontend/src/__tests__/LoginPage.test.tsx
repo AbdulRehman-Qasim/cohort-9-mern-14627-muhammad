@@ -31,7 +31,7 @@ describe('LoginPage', () => {
 
   it('renders login form by default', () => {
     renderWithContext(<LoginPage />);
-    expect(screen.getByText('Sign in to your account to continue')).toBeInTheDocument();
+    expect(screen.getByText('Sign in to continue to your notes.')).toBeInTheDocument();
     expect(screen.getByLabelText(/Email address/i)).toBeInTheDocument();
   });
 
