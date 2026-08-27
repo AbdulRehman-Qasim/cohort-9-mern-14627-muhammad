@@ -21,7 +21,7 @@ api.interceptors.request.use((config: CustomAxiosRequestConfig) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response?.status === 401) {
       const requestSessionId = (error.config as CustomAxiosRequestConfig)?.sessionId;
       if (requestSessionId === activeSessionId) {
         window.dispatchEvent(new CustomEvent('auth:unauthorized'));

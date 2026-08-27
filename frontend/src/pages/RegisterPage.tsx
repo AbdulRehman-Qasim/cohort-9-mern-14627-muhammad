@@ -77,9 +77,7 @@ const RegisterPage: React.FC = () => {
       }
     } catch (error) {
       let errorMsg = 'Registration failed. Please try again.';
-      if (error instanceof ApiError) {
-        errorMsg = error.message;
-      } else if (error instanceof Error) {
+      if (error instanceof ApiError || error instanceof Error) {
         errorMsg = error.message;
       }
       setApiError(errorMsg);

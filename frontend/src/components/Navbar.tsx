@@ -26,7 +26,7 @@ const Navbar: React.FC = () => {
           <span className="navbar-brand-dot">
             <img src="/memoora-icon.svg" alt="Memoora Icon" style={{ width: '16px', height: '16px' }} />
           </span>
-          Memoora
+          <span> Memoora</span>
         </Link>
       </div>
       <div className="navbar-links">

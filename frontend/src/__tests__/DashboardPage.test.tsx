@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import DashboardPage from '../pages/DashboardPage';
 import { AuthContext } from '../context/AuthContext';
@@ -69,8 +68,6 @@ describe('DashboardPage', () => {
 
   describe('CSV Export', () => {
     let mockCreateElement: jest.SpyInstance;
-    let mockAppendChild: jest.SpyInstance;
-    let mockRemoveChild: jest.SpyInstance;
     let mockClick: jest.Mock;
 
     beforeEach(() => {
@@ -82,6 +79,7 @@ describe('DashboardPage', () => {
         href: '',
         download: '',
         click: mockClick,
+        remove: jest.fn(),
       };
 
       const originalCreateElement = document.createElement.bind(document);
@@ -98,15 +96,10 @@ describe('DashboardPage', () => {
       });
 
       const originalAppendChild = document.body.appendChild.bind(document.body);
-      const originalRemoveChild = document.body.removeChild.bind(document.body);
 
-      mockAppendChild = jest.spyOn(document.body, 'appendChild').mockImplementation((node) => {
+      jest.spyOn(document.body, 'appendChild').mockImplementation((node) => {
         if ((node as any) === mockAnchor) return node;
         return originalAppendChild(node);
-      });
-      mockRemoveChild = jest.spyOn(document.body, 'removeChild').mockImplementation((node) => {
-        if ((node as any) === mockAnchor) return node;
-        return originalRemoveChild(node);
       });
     });
 

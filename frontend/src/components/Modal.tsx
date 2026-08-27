@@ -18,7 +18,7 @@ const FOCUSABLE_SELECTORS = [
 ].join(',');
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDialogElement>(null);
   const previousFocusRef = useRef<Element | null>(null);
   const titleId = useId();
 
@@ -55,19 +55,25 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
           e.preventDefault();
           last.focus();
         }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
+      } else if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleOutsideClick);
     document.body.style.overflow = 'hidden';
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleOutsideClick);
       document.body.style.overflow = 'unset';
 
       const prev = previousFocusRef.current;
@@ -81,14 +87,13 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="modal-backdrop" onClick={onClose}>
-      <div
+    <div className="modal-backdrop">
+      <dialog
         className="modal-content"
-        onClick={(e) => e.stopPropagation()}
         ref={modalRef}
-        role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
+        open
       >
         <div className="modal-header">
           {title ? <h3 className="modal-title" id={titleId}>{title}</h3> : <div />}
@@ -99,7 +104,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
         <div className="modal-body">
           {children}
         </div>
-      </div>
+      </dialog>
     </div>,
     document.body
   );

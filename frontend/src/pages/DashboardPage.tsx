@@ -33,6 +33,25 @@ function sanitize(html: string): string {
   });
 }
 
+const addNoteIfNotExists = (prev: Note[], newNote: Note): Note[] => {
+  if (prev.some((n) => n.id === newNote.id)) return prev;
+  return [newNote, ...prev];
+};
+
+const updateNoteInList = (prev: Note[], updatedNote: Note): Note[] => {
+  return prev.map((n) => (n.id === updatedNote.id ? updatedNote : n));
+};
+
+const removeNoteFromList = (prev: Note[], deletedId: string): Note[] => {
+  return prev.filter((n) => n.id !== deletedId);
+};
+
+const mergeImportedNotes = (prev: Note[], newNotes: Note[]): Note[] => {
+  const map = new Map(prev.map((n) => [n.id, n]));
+  newNotes.forEach((n) => map.set(n.id, n));
+  return Array.from(map.values());
+};
+
 const DashboardPage: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -148,18 +167,15 @@ const DashboardPage: React.FC = () => {
     });
 
     socketRef.current.on('NOTE_CREATED', (newNote: Note) => {
-      setNotes((prev) => {
-        if (prev.some((n) => n.id === newNote.id)) return prev;
-        return [newNote, ...prev];
-      });
+      setNotes((prev) => addNoteIfNotExists(prev, newNote));
     });
 
     socketRef.current.on('NOTE_UPDATED', (updatedNote: Note) => {
-      setNotes((prev) => prev.map((n) => (n.id === updatedNote.id ? updatedNote : n)));
+      setNotes((prev) => updateNoteInList(prev, updatedNote));
     });
 
     socketRef.current.on('NOTE_DELETED', (deletedId: string) => {
-      setNotes((prev) => prev.filter((n) => n.id !== deletedId));
+      setNotes((prev) => removeNoteFromList(prev, deletedId));
     });
 
     return () => {
@@ -262,7 +278,7 @@ const DashboardPage: React.FC = () => {
 
     const rows = notes.map((note) => {
       let plainContent = note.content
-        .replace(/<br\s*[\/]?>/gi, '\n')
+        .replace(/<br\s*\/?>/gi, '\n')
         .replace(/<\/p>|<\/div>|<\/h[1-6]>/gi, '\n')
         .replace(/<[^>]+>/g, '')
         .replace(/&nbsp;/gi, ' ')
@@ -294,7 +310,7 @@ const DashboardPage: React.FC = () => {
 
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     URL.revokeObjectURL(url);
     
     toast.success('Notes exported successfully.');
@@ -329,11 +345,7 @@ const DashboardPage: React.FC = () => {
         const response = await notesService.importNotes(sanitizedEntries);
         if (response.success && response.data) {
           const newNotes = response.data;
-          setNotes((prev) => {
-            const map = new Map(prev.map((n) => [n.id, n]));
-            newNotes.forEach((n) => map.set(n.id, n));
-            return Array.from(map.values());
-          });
+          setNotes((prev) => mergeImportedNotes(prev, newNotes));
         }
       } catch {
         alert('Failed to parse the JSON file. Please make sure it is a valid notes export.');
@@ -341,6 +353,131 @@ const DashboardPage: React.FC = () => {
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const renderMainContent = () => {
+    if (loading) {
+      return <div className="loading-state">Loading your workspace...</div>;
+    }
+    if (error) {
+      return (
+        <div className="empty-state-modern">
+          <div className="empty-state-icon">⚠️</div>
+          <h4>Oops, something went wrong</h4>
+          <p>{error}</p>
+          <button type="button" className="btn-primary" onClick={() => window.location.reload()} style={{ marginTop: '1rem' }}>
+            Try Again
+          </button>
+        </div>
+      );
+    }
+    if (notes.length === 0) {
+      return (
+        <div className="empty-state-modern">
+          <div className="empty-state-icon">📝</div>
+          <h4>No notes yet</h4>
+          <p>Your ideas deserve a place to live. Create your first note and start organizing your thoughts.</p>
+          <button type="button" className="btn-primary" onClick={() => setIsCreateModalOpen(true)} style={{ marginTop: '1.5rem' }}>
+            + Create your first note
+          </button>
+        </div>
+      );
+    }
+    return (
+      <>
+        <div className="notes-section-header-modern">
+          <h3>Your Notes</h3>
+          <span className="notes-pagination">
+            {displayedNotes.length} / {notes.length}
+          </span>
+        </div>
+
+        {displayedNotes.length === 0 ? (
+          <div className="empty-state-modern no-results">
+            <p>No notes match your search &ldquo;<strong>{searchQuery}</strong>&rdquo;.</p>
+          </div>
+        ) : (
+          <div className="notes-grid-modern">
+            {displayedNotes.map((note) => (
+              <div key={note.id} className="note-card-modern">
+                <div className="note-card-body-modern">
+                  <div className="note-card-header-modern">
+                    <h4 className="note-card-title-modern">{note.title}</h4>
+                    <div style={{ position: 'relative' }}>
+                      {pinnedNoteIds.includes(note.id) && (
+                        <span style={{ fontSize: '1rem', marginRight: '0.5rem' }}>📌</span>
+                      )}
+                      <button
+                        type="button"
+                        className="card-action-menu-btn"
+                        aria-label="Options"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenuNoteId(activeMenuNoteId === note.id ? null : note.id);
+                        }}
+                      >
+                        ⋮
+                      </button>
+                      {activeMenuNoteId === note.id && (
+                        <div className="card-dropdown-menu">
+                          <button
+                            type="button"
+                            className="card-dropdown-item"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePin(note.id);
+                              setActiveMenuNoteId(null);
+                            }}
+                          >
+                            {pinnedNoteIds.includes(note.id) ? 'Unpin Note' : 'Pin Note'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div
+                    className="note-card-content-modern"
+                    dangerouslySetInnerHTML={{ __html: sanitize(note.content) }}
+                  />
+                  
+                  <div className="note-card-divider"></div>
+
+                  <div className="note-card-footer-modern">
+                    <span className="note-date">
+                      {new Date(note.createdAt).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                    <div className="note-card-actions-modern">
+                      <button
+                        type="button"
+                        className="card-action-btn edit"
+                        onClick={() => setEditingNote(note)}
+                        aria-label={`Edit ${note.title}`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className={`card-action-btn delete ${deletingNoteId === note.id ? 'deleting' : ''}`}
+                        onClick={() => handleDeleteClick(note)}
+                        disabled={deletingNoteId === note.id}
+                        aria-label={`Delete ${note.title}`}
+                      >
+                        {deletingNoteId === note.id ? '...' : 'Delete'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </>
+    );
   };
 
   return (
@@ -420,123 +557,7 @@ const DashboardPage: React.FC = () => {
       </div>
 
       <div className="dashboard-main-content">
-        {loading ? (
-          <div className="loading-state">Loading your workspace...</div>
-        ) : error ? (
-          <div className="empty-state-modern">
-            <div className="empty-state-icon">⚠️</div>
-            <h4>Oops, something went wrong</h4>
-            <p>{error}</p>
-            <button type="button" className="btn-primary" onClick={() => window.location.reload()} style={{ marginTop: '1rem' }}>
-              Try Again
-            </button>
-          </div>
-        ) : notes.length === 0 ? (
-          <div className="empty-state-modern">
-            <div className="empty-state-icon">📝</div>
-            <h4>No notes yet</h4>
-            <p>Your ideas deserve a place to live. Create your first note and start organizing your thoughts.</p>
-            <button type="button" className="btn-primary" onClick={() => setIsCreateModalOpen(true)} style={{ marginTop: '1.5rem' }}>
-              + Create your first note
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="notes-section-header-modern">
-              <h3>Your Notes</h3>
-              <span className="notes-pagination">
-                {displayedNotes.length} / {notes.length}
-              </span>
-            </div>
-
-            {displayedNotes.length === 0 ? (
-              <div className="empty-state-modern no-results">
-                <p>No notes match your search &ldquo;<strong>{searchQuery}</strong>&rdquo;.</p>
-              </div>
-            ) : (
-              <div className="notes-grid-modern">
-                {displayedNotes.map((note) => (
-                  <div key={note.id} className="note-card-modern">
-                    <div className="note-card-body-modern">
-                      <div className="note-card-header-modern">
-                        <h4 className="note-card-title-modern">{note.title}</h4>
-                        <div style={{ position: 'relative' }}>
-                          {pinnedNoteIds.includes(note.id) && (
-                            <span style={{ fontSize: '1rem', marginRight: '0.5rem' }}>📌</span>
-                          )}
-                          <button
-                            type="button"
-                            className="card-action-menu-btn"
-                            aria-label="Options"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveMenuNoteId(activeMenuNoteId === note.id ? null : note.id);
-                            }}
-                          >
-                            ⋮
-                          </button>
-                          {activeMenuNoteId === note.id && (
-                            <div 
-                              className="card-dropdown-menu"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <button
-                                type="button"
-                                className="card-dropdown-item"
-                                onClick={() => {
-                                  togglePin(note.id);
-                                  setActiveMenuNoteId(null);
-                                }}
-                              >
-                                {pinnedNoteIds.includes(note.id) ? 'Unpin Note' : 'Pin Note'}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div
-                        className="note-card-content-modern"
-                        dangerouslySetInnerHTML={{ __html: sanitize(note.content) }}
-                      />
-                      
-                      <div className="note-card-divider"></div>
-
-                      <div className="note-card-footer-modern">
-                        <span className="note-date">
-                          {new Date(note.createdAt).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </span>
-                        <div className="note-card-actions-modern">
-                          <button
-                            type="button"
-                            className="card-action-btn edit"
-                            onClick={() => setEditingNote(note)}
-                            aria-label={`Edit ${note.title}`}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className={`card-action-btn delete ${deletingNoteId === note.id ? 'deleting' : ''}`}
-                            onClick={() => handleDeleteClick(note)}
-                            disabled={deletingNoteId === note.id}
-                            aria-label={`Delete ${note.title}`}
-                          >
-                            {deletingNoteId === note.id ? '...' : 'Delete'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+        {renderMainContent()}
       </div>
 
       {!loading && !error && (

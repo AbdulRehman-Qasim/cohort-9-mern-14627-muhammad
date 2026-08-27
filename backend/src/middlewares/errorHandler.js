@@ -5,7 +5,7 @@ const { Prisma } = require('@prisma/client');
 const errorHandler = (err, req, res, next) => {
   logger.error(err);
 
-  let statusCode = parseInt(err.statusCode, 10) || 500;
+  let statusCode = Number.parseInt(err.statusCode, 10) || 500;
   if (Number.isNaN(statusCode) || statusCode < 100 || statusCode > 599) {
     statusCode = 500;
   }
