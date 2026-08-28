@@ -65,13 +65,15 @@ const LoginPage: React.FC = () => {
   return (
     <div className="auth-page-wrapper">
       <div className="auth-container">
-        <div className="auth-card-top" />
         <div className="auth-card-body">
           <div className="auth-logo">
-            <div className="auth-logo-icon">📒</div>
+            <div className="auth-logo-icon">
+              <img src="/memoora-icon.svg" alt="Memoora Icon" style={{ width: '24px', height: '24px' }} />
+            </div>
+            <div className="auth-logo-text">Memoora</div>
           </div>
           <h1 className="auth-heading">Welcome back</h1>
-          <p className="auth-subheading">Sign in to your account to continue</p>
+          <p className="auth-subheading">Sign in to continue to your notes.</p>
           {apiError && <div className="api-error" role="alert">{apiError}</div>}
           <form onSubmit={handleSubmit} className="auth-form" noValidate>
             <div className="form-group">
@@ -118,6 +120,9 @@ const LoginPage: React.FC = () => {
           <div className="auth-link">
             Don't have an account? <Link to="/register">Create one</Link>
           </div>
+        </div>
+        <div className="auth-visual-panel">
+          <img src="/auth-visual.png" alt="Workspace" className="auth-visual-image" />
         </div>
       </div>
     </div>

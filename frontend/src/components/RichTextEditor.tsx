@@ -12,11 +12,23 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
       editorRef.current.innerHTML = value;
     }
   }, [value]);
-  const handleInput = () => {
+  const handleInput = React.useCallback(() => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
-  };
+  }, [onChange]);
+
+  useEffect(() => {
+    const el = editorRef.current;
+    if (el) {
+      el.addEventListener('input', handleInput);
+      el.addEventListener('blur', handleInput);
+      return () => {
+        el.removeEventListener('input', handleInput);
+        el.removeEventListener('blur', handleInput);
+      };
+    }
+  }, [handleInput]);
   const execCmd = (command: string, arg?: string) => {
     document.execCommand(command, false, arg);
     editorRef.current?.focus();
@@ -45,8 +57,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
         ref={editorRef}
         className="editor-content"
         contentEditable={!disabled}
-        onInput={handleInput}
-        onBlur={handleInput}
         data-placeholder={placeholder}
       />
     </div>

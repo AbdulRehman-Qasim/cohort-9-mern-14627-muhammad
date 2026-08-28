@@ -6,6 +6,8 @@ import { Note } from '../types/notes.types';
 import { ApiError } from '../types/auth.types';
 import UserProfileModal from '../components/UserProfileModal';
 import NoteEditorModal from '../components/NoteEditorModal';
+import Modal from '../components/Modal';
+import toast from 'react-hot-toast';
 import { io, Socket } from 'socket.io-client';
 
 type SortOrder = 'newest' | 'oldest' | 'title-az' | 'title-za';
@@ -31,6 +33,25 @@ function sanitize(html: string): string {
   });
 }
 
+const addNoteIfNotExists = (prev: Note[], newNote: Note): Note[] => {
+  if (prev.some((n) => n.id === newNote.id)) return prev;
+  return [newNote, ...prev];
+};
+
+const updateNoteInList = (prev: Note[], updatedNote: Note): Note[] => {
+  return prev.map((n) => (n.id === updatedNote.id ? updatedNote : n));
+};
+
+const removeNoteFromList = (prev: Note[], deletedId: string): Note[] => {
+  return prev.filter((n) => n.id !== deletedId);
+};
+
+const mergeImportedNotes = (prev: Note[], newNotes: Note[]): Note[] => {
+  const map = new Map(prev.map((n) => [n.id, n]));
+  newNotes.forEach((n) => map.set(n.id, n));
+  return Array.from(map.values());
+};
+
 const DashboardPage: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -55,6 +76,43 @@ const DashboardPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
+  const [pinnedNoteIds, setPinnedNoteIds] = useState<string[]>(() => {
+    if (!user) return [];
+    try {
+      const saved = localStorage.getItem(`memoora_pins_${user.id}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [activeMenuNoteId, setActiveMenuNoteId] = useState<string | null>(null);
+  const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = () => setActiveMenuNoteId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const togglePin = (noteId: string) => {
+    setPinnedNoteIds((prev) => {
+      let newPins = [...prev];
+      if (newPins.includes(noteId)) {
+        newPins = newPins.filter((id) => id !== noteId);
+      } else {
+        if (newPins.length >= 3) {
+          toast.error('You can only pin up to 3 notes');
+          return prev;
+        }
+        newPins.push(noteId);
+      }
+      if (user) {
+        localStorage.setItem(`memoora_pins_${user.id}`, JSON.stringify(newPins));
+      }
+      return newPins;
+    });
+  };
+
   const displayedNotes = notes
     .filter((note) => {
       const q = searchQuery.toLowerCase();
@@ -62,6 +120,11 @@ const DashboardPage: React.FC = () => {
       return note.title.toLowerCase().includes(q) || plainContent.includes(q);
     })
     .sort((a, b) => {
+      const aPinned = pinnedNoteIds.includes(a.id);
+      const bPinned = pinnedNoteIds.includes(b.id);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+
       if (sortOrder === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       if (sortOrder === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       if (sortOrder === 'title-az') return a.title.localeCompare(b.title);
@@ -104,18 +167,15 @@ const DashboardPage: React.FC = () => {
     });
 
     socketRef.current.on('NOTE_CREATED', (newNote: Note) => {
-      setNotes((prev) => {
-        if (prev.some((n) => n.id === newNote.id)) return prev;
-        return [newNote, ...prev];
-      });
+      setNotes((prev) => addNoteIfNotExists(prev, newNote));
     });
 
     socketRef.current.on('NOTE_UPDATED', (updatedNote: Note) => {
-      setNotes((prev) => prev.map((n) => (n.id === updatedNote.id ? updatedNote : n)));
+      setNotes((prev) => updateNoteInList(prev, updatedNote));
     });
 
     socketRef.current.on('NOTE_DELETED', (deletedId: string) => {
-      setNotes((prev) => prev.filter((n) => n.id !== deletedId));
+      setNotes((prev) => removeNoteFromList(prev, deletedId));
     });
 
     return () => {
@@ -176,8 +236,13 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const handleDeleteNote = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this note?')) return;
+  const handleDeleteClick = (note: Note) => {
+    setNoteToDelete(note);
+  };
+
+  const confirmDelete = async () => {
+    if (!noteToDelete) return;
+    const id = noteToDelete.id;
     setDeletingNoteId(id);
     setDeleteError('');
     try {
@@ -193,20 +258,62 @@ const DashboardPage: React.FC = () => {
       else setDeleteError('An unexpected error occurred while deleting the note.');
     } finally {
       setDeletingNoteId(null);
+      setNoteToDelete(null);
     }
   };
 
   const handleExport = () => {
-    const dataStr = JSON.stringify(notes, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
+    if (!notes || notes.length === 0) {
+      toast.error('There are no notes available to export.');
+      return;
+    }
+
+    const headers = ['Title', 'Content', 'Created At', 'Updated At'];
+
+    const escapeCsv = (str: string) => {
+      if (str === null || str === undefined) return '""';
+      const strVal = String(str);
+      return `"${strVal.replace(/"/g, '""')}"`;
+    };
+
+    const rows = notes.map((note) => {
+      let plainContent = note.content
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>|<\/div>|<\/h[1-6]>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/gi, ' ')
+        .trim();
+
+      const txt = document.createElement('textarea');
+      txt.innerHTML = plainContent;
+      plainContent = txt.value;
+
+      const createdAt = new Date(note.createdAt).toISOString().split('T')[0];
+      const updatedAt = new Date(note.updatedAt).toISOString().split('T')[0];
+
+      return [
+        escapeCsv(note.title),
+        escapeCsv(plainContent),
+        escapeCsv(createdAt),
+        escapeCsv(updatedAt)
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `notes_export_${new Date().getTime()}.json`;
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.download = `Memoora-notes-${dateStr}.csv`;
+
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     URL.revokeObjectURL(url);
+    
+    toast.success('Notes exported successfully.');
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,11 +345,7 @@ const DashboardPage: React.FC = () => {
         const response = await notesService.importNotes(sanitizedEntries);
         if (response.success && response.data) {
           const newNotes = response.data;
-          setNotes((prev) => {
-            const map = new Map(prev.map((n) => [n.id, n]));
-            newNotes.forEach((n) => map.set(n.id, n));
-            return Array.from(map.values());
-          });
+          setNotes((prev) => mergeImportedNotes(prev, newNotes));
         }
       } catch {
         alert('Failed to parse the JSON file. Please make sure it is a valid notes export.');
@@ -252,34 +355,160 @@ const DashboardPage: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const renderMainContent = () => {
+    if (loading) {
+      return <div className="loading-state">Loading your workspace...</div>;
+    }
+    if (error) {
+      return (
+        <div className="empty-state-modern">
+          <div className="empty-state-icon">⚠️</div>
+          <h4>Oops, something went wrong</h4>
+          <p>{error}</p>
+          <button type="button" className="btn-primary" onClick={() => window.location.reload()} style={{ marginTop: '1rem' }}>
+            Try Again
+          </button>
+        </div>
+      );
+    }
+    if (notes.length === 0) {
+      return (
+        <div className="empty-state-modern">
+          <div className="empty-state-icon">📝</div>
+          <h4>No notes yet</h4>
+          <p>Your ideas deserve a place to live. Create your first note and start organizing your thoughts.</p>
+          <button type="button" className="btn-primary" onClick={() => setIsCreateModalOpen(true)} style={{ marginTop: '1.5rem' }}>
+            + Create your first note
+          </button>
+        </div>
+      );
+    }
+    return (
+      <>
+        <div className="notes-section-header-modern">
+          <h3>Your Notes</h3>
+          <span className="notes-pagination">
+            {displayedNotes.length} / {notes.length}
+          </span>
+        </div>
+
+        {displayedNotes.length === 0 ? (
+          <div className="empty-state-modern no-results">
+            <p>No notes match your search &ldquo;<strong>{searchQuery}</strong>&rdquo;.</p>
+          </div>
+        ) : (
+          <div className="notes-grid-modern">
+            {displayedNotes.map((note) => (
+              <div key={note.id} className="note-card-modern">
+                <div className="note-card-body-modern">
+                  <div className="note-card-header-modern">
+                    <h4 className="note-card-title-modern">{note.title}</h4>
+                    <div style={{ position: 'relative' }}>
+                      {pinnedNoteIds.includes(note.id) && (
+                        <span style={{ fontSize: '1rem', marginRight: '0.5rem' }}>📌</span>
+                      )}
+                      <button
+                        type="button"
+                        className="card-action-menu-btn"
+                        aria-label="Options"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenuNoteId(activeMenuNoteId === note.id ? null : note.id);
+                        }}
+                      >
+                        ⋮
+                      </button>
+                      {activeMenuNoteId === note.id && (
+                        <div className="card-dropdown-menu">
+                          <button
+                            type="button"
+                            className="card-dropdown-item"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePin(note.id);
+                              setActiveMenuNoteId(null);
+                            }}
+                          >
+                            {pinnedNoteIds.includes(note.id) ? 'Unpin Note' : 'Pin Note'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div
+                    className="note-card-content-modern"
+                    dangerouslySetInnerHTML={{ __html: sanitize(note.content) }}
+                  />
+                  
+                  <div className="note-card-divider"></div>
+
+                  <div className="note-card-footer-modern">
+                    <span className="note-date">
+                      {new Date(note.createdAt).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                    <div className="note-card-actions-modern">
+                      <button
+                        type="button"
+                        className="card-action-btn edit"
+                        onClick={() => setEditingNote(note)}
+                        aria-label={`Edit ${note.title}`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className={`card-action-btn delete ${deletingNoteId === note.id ? 'deleting' : ''}`}
+                        onClick={() => handleDeleteClick(note)}
+                        disabled={deletingNoteId === note.id}
+                        aria-label={`Delete ${note.title}`}
+                      >
+                        {deletingNoteId === note.id ? '...' : 'Delete'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  };
+
   return (
-    <div>
-      <div className="dashboard-top">
-        <div className="dashboard-title-block">
-          <h2 className="dashboard-title">My Notes</h2>
-          <p className="dashboard-welcome">
-            Good to see you, <strong>{user?.name || 'User'}</strong>!
+    <div className="dashboard-container">
+      <header className="dashboard-header-modern">
+        <div className="dashboard-header-text">
+          <h2 className="dashboard-title">Welcome back, {user?.name || 'User'}</h2>
+          <p className="dashboard-subtitle">
+            Capture ideas, keep your thoughts organized, and pick up where you left off.
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="dashboard-header-actions">
           {!loading && !error && (
-            <span className="note-count-badge">
-              📌 {notes.length} note{notes.length !== 1 ? 's' : ''}
-            </span>
+            <div className="note-count-pill">
+              <strong>{notes.length}</strong> note{notes.length !== 1 ? 's' : ''}
+            </div>
           )}
           <button
             type="button"
             className="dash-user-chip"
             onClick={() => setIsProfileModalOpen(true)}
             title="Account Settings"
+            aria-label="Open Profile Settings"
           >
             <div className="dash-avatar">
               {(user?.name || 'U').charAt(0).toUpperCase()}
             </div>
-            <span>{user?.name?.split(' ')[0] || 'User'}</span>
+            <span className="dash-user-name">{user?.name?.split(' ')[0] || 'User'}</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {deleteError && (
         <div className="delete-error-banner" role="alert">
@@ -287,23 +516,23 @@ const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      <div className="notes-controls">
-        <div className="search-wrapper">
+      <div className="dashboard-toolbar">
+        <div className="search-bar-modern">
           <span className="search-icon">🔍</span>
           <input
             type="text"
             placeholder="Search your notes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="notes-search-input"
+            className="notes-search-input-modern"
             aria-label="Search notes"
           />
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="toolbar-actions">
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-            className="notes-sort-select"
+            className="notes-sort-select-modern"
             aria-label="Sort notes"
           >
             <option value="newest">Newest first</option>
@@ -311,10 +540,10 @@ const DashboardPage: React.FC = () => {
             <option value="title-az">Title (A-Z)</option>
             <option value="title-za">Title (Z-A)</option>
           </select>
-          <button type="button" onClick={handleExport} className="btn-secondary" style={{ padding: '0.45rem 0.75rem', height: '100%' }}>
+          <button type="button" onClick={handleExport} className="toolbar-btn" aria-label="Export notes">
             Export
           </button>
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-secondary" style={{ padding: '0.45rem 0.75rem', height: '100%' }}>
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="toolbar-btn" aria-label="Import notes">
             Import
           </button>
           <input
@@ -327,86 +556,9 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="loading-state">Loading your notes...</div>
-      ) : error ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">⚠️</div>
-          <h4>Oops, something went wrong</h4>
-          <p>{error}</p>
-          <button type="button" className="submit-btn" onClick={() => window.location.reload()} style={{ width: 'auto', marginTop: '0.5rem' }}>
-            Try Again
-          </button>
-        </div>
-      ) : notes.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">📝</div>
-          <h4>No notes yet</h4>
-          <p>You haven't created any notes. Click the button below to capture your first idea.</p>
-          <button type="button" className="submit-btn" onClick={() => setIsCreateModalOpen(true)} style={{ width: 'auto', marginTop: '0.5rem' }}>
-            + Create your first note
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="notes-section-header">
-            <h3>All Notes</h3>
-            <span className="notes-count">
-              {displayedNotes.length} / {notes.length}
-            </span>
-          </div>
-
-          {displayedNotes.length === 0 ? (
-            <div className="no-results">
-              No notes match your search &ldquo;{searchQuery}&rdquo;.
-            </div>
-          ) : (
-            <div className="notes-grid">
-              {displayedNotes.map((note) => (
-                <div key={note.id} className="note-card">
-                  <div className="note-card-body">
-                    <div className="note-card-header">
-                      <h4 className="note-card-title">{note.title}</h4>
-                      <div className="note-card-actions">
-                        <button
-                          type="button"
-                          className="btn-icon btn-icon-edit"
-                          onClick={() => setEditingNote(note)}
-                          aria-label={`Edit ${note.title}`}
-                        >
-                          ✎
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn-icon btn-icon-delete ${deletingNoteId === note.id ? 'deleting' : ''}`}
-                          onClick={() => handleDeleteNote(note.id)}
-                          disabled={deletingNoteId === note.id}
-                          aria-label={`Delete ${note.title}`}
-                        >
-                          {deletingNoteId === note.id ? '...' : '🗑'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div
-                      className="note-card-content"
-                      dangerouslySetInnerHTML={{ __html: sanitize(note.content) }}
-                    />
-
-                    <div className="note-card-footer">
-                      {new Date(note.createdAt).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
+      <div className="dashboard-main-content">
+        {renderMainContent()}
+      </div>
 
       {!loading && !error && (
         <button
@@ -444,6 +596,31 @@ const DashboardPage: React.FC = () => {
           error={editError}
         />
       )}
+
+      <Modal isOpen={!!noteToDelete} onClose={() => setNoteToDelete(null)} title="Confirm Delete">
+        <p style={{ color: 'var(--text)', marginBottom: '1.5rem', marginTop: '0.5rem', lineHeight: '1.6' }}>
+          Are you sure you want to delete the note <strong>"{noteToDelete?.title}"</strong>? This action cannot be undone.
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+          <button className="btn-secondary" onClick={() => setNoteToDelete(null)} style={{ padding: '0.5rem 1rem' }} disabled={deletingNoteId !== null}>
+            Cancel
+          </button>
+          <button 
+            className="btn-primary" 
+            onClick={confirmDelete} 
+            disabled={deletingNoteId !== null}
+            style={{ 
+              background: 'var(--danger)', 
+              color: 'white', 
+              border: 'none', 
+              padding: '0.5rem 1rem', 
+              boxShadow: 'none' 
+            }}
+          >
+            {deletingNoteId !== null ? 'Deleting...' : 'Yes, Delete'}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

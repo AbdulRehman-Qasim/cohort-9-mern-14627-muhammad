@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import authService from '../services/auth.service';
 import { setSessionId } from '../services/api';
 import { User, ApiResponse } from '../types/auth.types';
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       window.removeEventListener('auth:unauthorized', handleUnauthorized);
     };
   }, []);
-  const login = async (email: string, password: string): Promise<ApiResponse<User>> => {
+  const login = useCallback(async (email: string, password: string): Promise<ApiResponse<User>> => {
     try {
       const response = await authService.login(email, password);
       if (response.success && response.data) {
@@ -78,16 +78,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       return { success: false, error: errorMessage };
     }
-  };
-  const register = async (name: string, email: string, password: string): Promise<ApiResponse<User>> => {
+  }, []);
+  const register = useCallback(async (name: string, email: string, password: string): Promise<ApiResponse<User>> => {
     try {
       return await authService.register(name, email, password);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
       return { success: false, error: errorMessage };
     }
-  };
-  const logout = async (): Promise<void> => {
+  }, []);
+  const logout = useCallback(async (): Promise<void> => {
     try {
       await authService.logout();
     } catch {
@@ -95,14 +95,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSessionId(null);
       setUser(null);
     }
-  };
-  const value: AuthContextType = {
+  }, []);
+  const value: AuthContextType = useMemo(() => ({
     user,
     loading,
     isAuthenticated: !!user,
     login,
     register,
     logout,
-  };
+  }), [user, loading, login, register, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
